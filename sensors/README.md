@@ -134,7 +134,7 @@ Policies: `backup.automated_backup_enabled` (CTRL-BKP-001)
 | `cloud-steampipe`               | stub            | Steampipe queries per provider -> payloads above (Phase 2)                                    |
 | `code-*` (semgrep/osv/gitleaks) | stub            | findings -> normalized finding JSON (Phase 3)                                                 |
 | `k8s-gatekeeper`                | stub            | Gatekeeper audit dump (Phase 2)                                                               |
-| `procedural-evidence`           | stub            | signed-manifest reader for procedural controls (§15)                                          |
+| `procedural-evidence`           | **implemented** | `sensors/procedural.py` reads signed manifests; `next_review_due` drives PASS/EXPIRED decay   |
 
 A sensor that produces no payload for a control it owns causes the control to be
 scored `MISSING` (not-ready) — a broken sensor surfaces as falling readiness,

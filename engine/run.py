@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from datetime import datetime, timezone
 
@@ -22,7 +23,8 @@ def load_jobs(jobs_path):
         return yaml.safe_load(fh)["jobs"]
 
 
-def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions", as_of=None, live=False):
+def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions",
+        procedural_dir="procedural", as_of=None, live=False):
     catalog = Catalog.load(_path(catalog_dir))
     implemented = catalog.implemented_packages(_path(policies_dir))
     jobs = load_jobs(_path(jobs_path))
@@ -64,6 +66,22 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
                              "valid_until": record["valid_until"]}
             stored = locker.put(record)
             evidence.append((cid, record["status"], stored))
+
+    from sensors import procedural as proc_sensor
+    proc_now = as_of or datetime.now(timezone.utc)
+    for cid, pv in proc_sensor.collect(_path(procedural_dir), proc_now).items():
+        ctrl = catalog.controls.get(cid)
+        if not ctrl:
+            continue
+        manifest_bytes = json.dumps(pv["_manifest"], sort_keys=True, default=str).encode()
+        record = build_record(ctrl, {"status": pv["status"], "findings": pv["findings"]},
+                              manifest_bytes, "procedural-evidence")
+        record["valid_until"] = pv["valid_until"]
+        record["source"]["query"] = f"procedural manifest ({pv['_manifest'].get('document_ref')})"
+        verdicts[cid] = {"status": pv["status"], "findings": pv["findings"],
+                         "valid_until": pv["valid_until"]}
+        stored = locker.put(record)
+        evidence.append((cid, record["status"], stored))
 
     waiver_list = waivers.load_exceptions(_path(exceptions_dir))
     decayed = waivers.apply_decay(verdicts, as_of)
@@ -142,6 +160,7 @@ def main():
     ap.add_argument("--policies", default="policies")
     ap.add_argument("--jobs", default="engine/jobs.yaml")
     ap.add_argument("--exceptions", default="exceptions")
+    ap.add_argument("--procedural", default="procedural")
     ap.add_argument("--out", default="evidence/out")
     ap.add_argument("--as-of", default=None, help="simulate decay as of this ISO date (e.g. 2026-09-15)")
     ap.add_argument("--live", action="store_true", help="refresh real sensors (github) and evaluate live data")
@@ -149,7 +168,8 @@ def main():
     args = ap.parse_args()
     locker = LockerClient(out_dir=args.out, push=args.push)
     run(args.catalog, args.policies, args.jobs, locker,
-        exceptions_dir=args.exceptions, as_of=_parse_as_of(args.as_of), live=args.live)
+        exceptions_dir=args.exceptions, procedural_dir=args.procedural,
+        as_of=_parse_as_of(args.as_of), live=args.live)
 
 
 if __name__ == "__main__":

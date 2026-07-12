@@ -1,0 +1,70 @@
+# SAMPLE procedural-evidence manifests.
+#
+# These illustrate the procedural-evidence mechanism (design §15). They are
+# attestations, NOT real records — replace each with a genuine, approver-signed
+# attestation of the actual governance activity before relying on the resulting
+# readiness score. A control is PASS while next_review_due is in the future and
+# EXPIRED once it passes (the review cadence itself drives validity decay).
+
+- control_id: CTRL-GOV-001
+  document_ref: governance/policies/infosec-policy.md
+  approved_at: 2026-01-15T00:00:00Z
+  approved_by: ciso@company
+  next_review_due: 2027-01-15T00:00:00Z
+  notes: Management-approved ISMS policy; annual cadence.
+
+- control_id: CTRL-GOV-002
+  document_ref: governance/raci.md
+  approved_at: 2026-01-15T00:00:00Z
+  approved_by: ciso@company
+  next_review_due: 2027-01-15T00:00:00Z
+  notes: Security roles & responsibilities (RACI) documented and current.
+
+- control_id: CTRL-RISK-001
+  document_ref: governance/risk-register.md
+  approved_at: 2026-04-01T00:00:00Z
+  approved_by: security-lead@company
+  next_review_due: 2026-07-01T00:00:00Z
+  notes: Quarterly risk-register review — OVERDUE (demonstrates EXPIRED decay).
+
+- control_id: CTRL-IR-001
+  document_ref: governance/incident-response.md
+  approved_at: 2026-03-01T00:00:00Z
+  approved_by: ir-lead@company
+  next_review_due: 2026-09-01T00:00:00Z
+  notes: Incident-response plan + semi-annual tabletop exercise recorded.
+
+- control_id: CTRL-PEOPLE-001
+  document_ref: governance/awareness-training.md
+  approved_at: 2026-02-01T00:00:00Z
+  approved_by: people-ops@company
+  next_review_due: 2027-02-01T00:00:00Z
+  notes: Security awareness training completed on hire and annually.
+
+- control_id: CTRL-SUPP-001
+  document_ref: governance/supplier-assessments.md
+  approved_at: 2026-02-15T00:00:00Z
+  approved_by: procurement@company
+  next_review_due: 2027-02-15T00:00:00Z
+  notes: Supplier security assessments; annual review.
+
+- control_id: CTRL-PRIV-001
+  document_ref: governance/privacy-notice.md
+  approved_at: 2026-01-20T00:00:00Z
+  approved_by: privacy-lead@company
+  next_review_due: 2027-01-20T00:00:00Z
+  notes: Privacy notice + data-handling controls reviewed annually.
+
+- control_id: CTRL-PI-001
+  document_ref: governance/processing-integrity.md
+  approved_at: 2026-03-01T00:00:00Z
+  approved_by: data-eng-lead@company
+  next_review_due: 2027-03-01T00:00:00Z
+  notes: Pipeline validity/accuracy/completeness checks defined and monitored.
+
+- control_id: CTRL-CONT-001
+  document_ref: governance/continuity-plan.md
+  approved_at: 2026-01-15T00:00:00Z
+  approved_by: ciso@company
+  next_review_due: 2027-01-15T00:00:00Z
+  notes: Business continuity / ICT-readiness plan with recovery objectives.
