@@ -25,3 +25,9 @@ sensors/out/
 __pycache__/
 *.pyc
 *.pyo
+
+# Terraform (local state + provider caches)
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
