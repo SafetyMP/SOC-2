@@ -125,17 +125,28 @@ Policies: `change_mgmt.branch_protection_enforced` (CTRL-CHG-001, CTRL-CHG-002)
 
 Policies: `backup.automated_backup_enabled` (CTRL-BKP-001)
 
-## Sensor status (Phase 0)
+## Sensor status
 
-| Sensor                          | Status    | Notes                                                                            |
-| ------------------------------- | --------- | -------------------------------------------------------------------------------- |
-| `terraform-conftest`            | **wired** | conftest over `terraform show -json plan`; see `.github/workflows/policy-ci.yml` |
-| `github-api`                    | stub      | client to populate the change-mgmt payload (Phase 3)                             |
-| `cloud-steampipe`               | stub      | Steampipe queries per provider -> payloads above (Phase 2)                       |
-| `code-*` (semgrep/osv/gitleaks) | stub      | findings -> normalized finding JSON (Phase 3)                                    |
-| `k8s-gatekeeper`                | stub      | Gatekeeper audit dump (Phase 2)                                                  |
-| `procedural-evidence`           | stub      | signed-manifest reader for procedural controls (§15)                             |
+| Sensor                          | Status          | Notes                                                                                         |
+| ------------------------------- | --------------- | --------------------------------------------------------------------------------------------- |
+| `github-api`                    | **implemented** | `sensors/github.py` reads live branch protection via `gh api`; `python3 -m engine.run --live` |
+| `terraform-conftest`            | designed        | conftest over `terraform show -json plan`; gate workflow Phase 1                              |
+| `cloud-steampipe`               | stub            | Steampipe queries per provider -> payloads above (Phase 2)                                    |
+| `code-*` (semgrep/osv/gitleaks) | stub            | findings -> normalized finding JSON (Phase 3)                                                 |
+| `k8s-gatekeeper`                | stub            | Gatekeeper audit dump (Phase 2)                                                               |
+| `procedural-evidence`           | stub            | signed-manifest reader for procedural controls (§15)                                          |
 
 A sensor that produces no payload for a control it owns causes the control to be
 scored `MISSING` (not-ready) — a broken sensor surfaces as falling readiness,
 never as silent green.
+
+### Running the live github sensor
+
+```bash
+python3 -m sensors.github                       # collect origin repo -> sensors/out/github.json
+python3 -m sensors.github --repo OWNER/REPO     # collect a specific repo
+python3 -m engine.run --live                    # refresh sensor(s) then evaluate live data
+```
+
+Live evidence is tagged `_source.live: true`; `--live` swaps in the sensor
+output for any job declaring `sensor: github` in `engine/jobs.yaml`.

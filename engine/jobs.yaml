@@ -11,5 +11,6 @@ jobs:
     package: logging.audit_log_enabled
   - payload: fixtures/change/repos.json
     package: change_mgmt.branch_protection_enforced
+    sensor: github
   - payload: fixtures/backup/datastores.json
     package: backup.automated_backup_enabled

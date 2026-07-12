@@ -22,16 +22,26 @@ def load_jobs(jobs_path):
         return yaml.safe_load(fh)["jobs"]
 
 
-def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions", as_of=None):
+def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions", as_of=None, live=False):
     catalog = Catalog.load(_path(catalog_dir))
     implemented = catalog.implemented_packages(_path(policies_dir))
     jobs = load_jobs(_path(jobs_path))
+
+    live_paths = {}
+    if live:
+        from sensors import github as github_sensor
+        repo = github_sensor.origin_repo()
+        live_paths["github"] = os.path.join(_REPO_ROOT, "sensors/out/github.json")
+        github_sensor.write_payload([repo], live_paths["github"])
+        print(f"# live sensor: github -> {live_paths['github']} ({repo})")
 
     verdicts = {}
     evidence = []
     for job in jobs:
         pkg = job["package"]
         payload = _path(job["payload"])
+        if live and job.get("sensor") in live_paths:
+            payload = live_paths[job["sensor"]]
         if pkg not in implemented:
             print(f"SKIP  {pkg} (not implemented)")
             continue
@@ -126,11 +136,12 @@ def main():
     ap.add_argument("--exceptions", default="exceptions")
     ap.add_argument("--out", default="evidence/out")
     ap.add_argument("--as-of", default=None, help="simulate decay as of this ISO date (e.g. 2026-09-15)")
+    ap.add_argument("--live", action="store_true", help="refresh real sensors (github) and evaluate live data")
     ap.add_argument("--push", action="store_true", help="push evidence records to the MinIO locker")
     args = ap.parse_args()
     locker = LockerClient(out_dir=args.out, push=args.push)
     run(args.catalog, args.policies, args.jobs, locker,
-        exceptions_dir=args.exceptions, as_of=_parse_as_of(args.as_of))
+        exceptions_dir=args.exceptions, as_of=_parse_as_of(args.as_of), live=args.live)
 
 
 if __name__ == "__main__":
