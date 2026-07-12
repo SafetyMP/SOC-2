@@ -6,9 +6,9 @@ import yaml
 
 from engine import waivers
 from engine.catalog import Catalog
-from engine.evaluator import evaluate
+from engine.evaluator import evaluate, attribute_findings
 from engine.locker import LockerClient, build_record
-from engine.scorer import score, PASS
+from engine.scorer import score, PASS, FAIL
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -49,10 +49,18 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
             payload_bytes = fh.read()
         result = evaluate(pkg, payload, _path(policies_dir))
         sensor = job.get("sensor", pkg.split(".")[0])
-        for cid in catalog.pkg_to_controls.get(pkg, []):
+        controls = catalog.pkg_to_controls.get(pkg, [])
+        if result["status"] == "MISSING":
+            per_control = {cid: [{"note": result.get("error", "no result")}] for cid in controls}
+        else:
+            per_control = attribute_findings(result["findings"], controls)
+        for cid in controls:
             ctrl = catalog.controls[cid]
-            record = build_record(ctrl, result, payload_bytes, sensor)
-            verdicts[cid] = {"status": result["status"], "findings": result["findings"],
+            ctrl_findings = per_control.get(cid, [])
+            status = "MISSING" if result["status"] == "MISSING" else (FAIL if ctrl_findings else PASS)
+            ctrl_result = {"status": status, "findings": ctrl_findings}
+            record = build_record(ctrl, ctrl_result, payload_bytes, sensor)
+            verdicts[cid] = {"status": status, "findings": ctrl_findings,
                              "valid_until": record["valid_until"]}
             stored = locker.put(record)
             evidence.append((cid, record["status"], stored))
