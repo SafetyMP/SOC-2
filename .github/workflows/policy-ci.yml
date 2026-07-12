@@ -36,20 +36,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Catalog YAML parses
-        run: |
-          python3 - <<'PY'
-          import glob, sys, yaml
-          ok = True
-          for f in glob.glob("catalog/*.yaml"):
-              try:
-                  docs = list(yaml.safe_load_all(open(f)))
-                  for c in docs:
-                      if c is None: continue
-                      for field in ("id","soc2","iso27001","criticality","assertion_type","evidence_validity"):
-                          assert field in c, f"{f}: missing {field} in {c.get('id','?')}"
-                  print(f"OK  {f} ({sum(1 for d in docs if d)} controls)")
-              except Exception as e:
-                  ok = False; print(f"ERR {f}: {e}")
-          sys.exit(0 if ok else 1)
-          PY
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: { python-version: "3.x" }
+      - name: Install PyYAML
+        run: pip install --quiet pyyaml
+      - name: Validate catalog + cross-reference Rego packages
+        run: python3 scripts/validate_catalog.py
