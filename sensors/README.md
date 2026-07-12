@@ -145,8 +145,13 @@ never as silent green.
 ```bash
 python3 -m sensors.github                       # collect origin repo -> sensors/out/github.json
 python3 -m sensors.github --repo OWNER/REPO     # collect a specific repo
-python3 -m engine.run --live                    # refresh sensor(s) then evaluate live data
+python3 -m sensors.github --owner SafetyMP      # org-wide: all public repos of owner
+python3 -m sensors.github --owner SafetyMP --visibility private
+python3 -m engine.run --live                    # refresh sensor(s) then evaluate (origin repo)
+python3 -m engine.run --live --org              # org-wide: evaluate all public repos of the origin owner
 ```
 
 Live evidence is tagged `_source.live: true`; `--live` swaps in the sensor
-output for any job declaring `sensor: github` in `engine/jobs.yaml`.
+output for any job declaring `sensor: github` in `engine/jobs.yaml`. `--org`
+broadens the change-management controls to every public repo of the owner — a
+control is met only if **all** in-scope repos comply.

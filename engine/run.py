@@ -24,7 +24,7 @@ def load_jobs(jobs_path):
 
 
 def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions",
-        procedural_dir="procedural", as_of=None, live=False):
+        procedural_dir="procedural", as_of=None, live=False, org=False):
     catalog = Catalog.load(_path(catalog_dir))
     implemented = catalog.implemented_packages(_path(policies_dir))
     jobs = load_jobs(_path(jobs_path))
@@ -32,10 +32,17 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
     live_paths = {}
     if live:
         from sensors import github as github_sensor
-        repo = github_sensor.origin_repo()
+        owner = github_sensor.origin_repo().split("/")[0]
         live_paths["github"] = os.path.join(_REPO_ROOT, "sensors/out/github.json")
-        github_sensor.write_payload([repo], live_paths["github"])
-        print(f"# live sensor: github -> {live_paths['github']} ({repo})")
+        if org:
+            repos = github_sensor.list_repos(owner, "public")
+            github_sensor.write_payload(repos, live_paths["github"])
+            print(f"# live sensor: github org-wide -> {live_paths['github']} "
+                  f"({len(repos)} public repos, {owner})")
+        else:
+            repo = github_sensor.origin_repo()
+            github_sensor.write_payload([repo], live_paths["github"])
+            print(f"# live sensor: github -> {live_paths['github']} ({repo})")
 
     verdicts = {}
     evidence = []
@@ -164,12 +171,13 @@ def main():
     ap.add_argument("--out", default="evidence/out")
     ap.add_argument("--as-of", default=None, help="simulate decay as of this ISO date (e.g. 2026-09-15)")
     ap.add_argument("--live", action="store_true", help="refresh real sensors (github) and evaluate live data")
+    ap.add_argument("--org", action="store_true", help="with --live, evaluate all public repos of the origin owner")
     ap.add_argument("--push", action="store_true", help="push evidence records to the MinIO locker")
     args = ap.parse_args()
     locker = LockerClient(out_dir=args.out, push=args.push)
     run(args.catalog, args.policies, args.jobs, locker,
         exceptions_dir=args.exceptions, procedural_dir=args.procedural,
-        as_of=_parse_as_of(args.as_of), live=args.live)
+        as_of=_parse_as_of(args.as_of), live=args.live, org=args.org)
 
 
 if __name__ == "__main__":
