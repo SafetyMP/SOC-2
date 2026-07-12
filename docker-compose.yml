@@ -46,7 +46,12 @@ services:
         done
         mc mb --ignore-existing --with-lock local/evidence
         mc retention set --default governance 365d local/evidence
-        echo "Locker ready: bucket=local/evidence object-lock=governance(365d)"
+        # evidence-writer: put/get only, never DeleteObject (prevents delete-marker hiding).
+        mc admin user add local evidence-writer writer-pass-dev-only 2>/dev/null || true
+        printf '%s' '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:PutObject","s3:GetObject","s3:GetObjectVersion","s3:ListBucket"],"Resource":["arn:aws:s3:::evidence","arn:aws:s3:::evidence/*"]},{"Effect":"Deny","Action":["s3:DeleteObject","s3:DeleteObjectVersion"],"Resource":["arn:aws:s3:::evidence/*"]}]}' > /tmp/writer-policy.json
+        mc admin policy create local evidence-writer-policy /tmp/writer-policy.json 2>/dev/null || mc admin policy add local evidence-writer-policy /tmp/writer-policy.json 2>/dev/null || true
+        mc admin policy attach local evidence-writer-policy --user evidence-writer 2>/dev/null || true
+        echo "Locker ready: bucket=local/evidence object-lock=governance(365d) writer=evidence-writer (no DeleteObject)"
         mc version info local/evidence
         mc retention info local/evidence
 

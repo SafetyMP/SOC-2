@@ -56,6 +56,14 @@ class LockerClient:
                 version_id = f"<push-failed: {e}>"
         return {"local_path": local_path, "version_id": version_id}
 
+    def get(self, control_id, evidence_id):
+        """Version-pinned read: fetch exactly this record by its pin (evidence_id).
+        Never reads the moveable 'current' pointer, so a delete marker cannot
+        hide the record."""
+        path = os.path.join(self.out_dir, control_id, evidence_id + ".json")
+        with open(path) as fh:
+            return json.load(fh)
+
     def _put_local(self, record):
         ctrl = record["control_id"]
         path = os.path.join(self.out_dir, ctrl, record["evidence_id"] + ".json")

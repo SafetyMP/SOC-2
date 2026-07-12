@@ -33,27 +33,21 @@ tampering is externally detectable. **Records are never backdated** — stale
 evidence decays to EXPIRED via the nightly recompute (§8.6), it is not
 re-stamped.
 
-## Smoke-test findings (verified locally)
+## Integrity hardening (implemented)
 
-Verified against the MinIO locker on 2026-07-11:
+The original smoke test (2026-07-11) found a gap: with versioning on,
+`DeleteObject` (no versionId) adds a **delete marker** that obscures the
+"current" view without purging the retained version. Three controls now close
+it — prevent, detect, retrieve:
 
-| Check                                                        | Result                                               |
-| ------------------------------------------------------------ | ---------------------------------------------------- |
-| Bucket created with object-lock GOVERNANCE 365d + versioning | ✅                                                   |
-| Retained version cannot be permanently purged without bypass | ✅ — `"is WORM protected and cannot be overwritten"` |
-| Retained version data remains readable by versionId          | ✅                                                   |
-| Delete marker can be added (obscures the "current" view)     | ⚠️ confirmed                                         |
+| Control                                  | Implementation                                                                                                       | Verified                                                                                          |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Object-lock GOVERNANCE 365d + versioning | bucket created with WORM                                                                                             | retained version can't be purged without bypass (`"is WORM protected and cannot be overwritten"`) |
+| **deny-DeleteObject** _(prevent)_        | `evidence-writer` IAM user in `docker-compose` init: PutObject/GetObject only, Deny DeleteObject                     | writer PUT succeeds; delete-marker attempt → **DENIED** ("Access Denied")                         |
+| **Merkle append log** _(detect)_         | `evidence/log.py`; `run.py` appends each record fingerprint and publishes the head to `evidence/out/merkle_head.txt` | tampering with any record's content/order changes every subsequent head; 8 unit tests             |
+| **Version-pinned get** _(retrieve)_      | `locker.get(control_id, evidence_id)` reads by pin, never the moveable current pointer                               | a stray delete marker cannot hide a record                                                        |
 
-**Caveat surfaced:** because versioning is on, `DeleteObject` (no versionId) adds a
-delete marker rather than purging data. The retained version survives and is
-retrievable by versionId, but the default ("current") view reports it absent.
-This does not violate immutability of the record itself, but it can hide it.
-
-**Hardening required (Phase 4 locker client):**
-
-1. **Bucket policy** denying `s3:DeleteObject` for the evidence-writer credential,
-   so only put/get are allowed — delete markers cannot be added in the first place.
-2. **Read by versionId** — the `get` path pins the exact retained version (never the
-   moveable "current" pointer), so even a stray delete marker cannot hide evidence.
-3. **Write path records the versionId** returned by each put, so every evidence
-   reference is version-pinned from the moment it is created.
+The published Merkle head makes post-hoc tampering externally detectable — any
+divergence between a record's committed fingerprint and the chain breaks
+verification. Records are never backdated; stale evidence decays to EXPIRED via
+the nightly recompute (§8.6), it is not re-stamped.
