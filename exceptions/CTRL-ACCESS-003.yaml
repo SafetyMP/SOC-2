@@ -1,0 +1,15 @@
+# Sample waiver (exception) — policy-as-data.
+# An unexpired, approver-signed waiver converts a FAIL verdict for the named
+# control into EXCEPTION at scoring time. EXCEPTION raises EFFECTIVE readiness
+# but never CLEAN readiness — the gap is the visible risk-acceptance surface.
+
+- id: waiver_ctrl_access_003_2026_07
+  control_id: CTRL-ACCESS-003
+  reason: >
+    Break-glass deploy role holds AdminWildcard (Action:*, Resource:*) on the CI
+    runner IAM scope. Remediation in flight (TICKET-421): replace with a scoped
+    OIDC-federated role. Accepted until the migration completes.
+  approver: security-lead@company
+  approved_at: 2026-07-10T00:00:00Z
+  expires: 2026-10-10T00:00:00Z
+  compensating_controls: [CTRL-LOG-006]
