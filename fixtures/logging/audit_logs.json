@@ -1,0 +1,22 @@
+{
+  "audit_logs": [
+    {
+      "cloud": "aws",
+      "enabled": true,
+      "all_regions": true,
+      "management_events": true
+    },
+    {
+      "cloud": "azure",
+      "enabled": true,
+      "all_regions": true,
+      "management_events": true
+    },
+    {
+      "cloud": "gcp",
+      "enabled": true,
+      "all_regions": true,
+      "management_events": true
+    }
+  ]
+}

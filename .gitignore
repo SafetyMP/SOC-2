@@ -18,3 +18,8 @@
 # Local evidence / locker artifacts (never commit evidence locally)
 evidence/out/
 *.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

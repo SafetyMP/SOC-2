@@ -1,0 +1,28 @@
+{
+  "principals": [
+    {
+      "arn": "arn:aws:iam::111:role/Deploy",
+      "type": "machine",
+      "privileged": true,
+      "mfa_active": true
+    },
+    {
+      "arn": "arn:aws:iam::111:role/BreakGlass",
+      "type": "machine",
+      "privileged": true,
+      "mfa_active": true
+    },
+    {
+      "arn": "alice@example.com",
+      "type": "human",
+      "privileged": false,
+      "mfa_active": true
+    },
+    {
+      "arn": "bob@example.com",
+      "type": "human",
+      "privileged": true,
+      "mfa_active": false
+    }
+  ]
+}

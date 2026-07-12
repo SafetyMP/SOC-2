@@ -1,0 +1,15 @@
+{
+  "policies": [
+    {
+      "name": "ReadDataBuckets",
+      "actions": ["s3:GetObject", "s3:ListBucket"],
+      "resources": ["arn:aws:s3:::data/*"]
+    },
+    { "name": "AdminWildcard", "actions": ["*"], "resources": ["*"] },
+    {
+      "name": "DynamoRead",
+      "actions": ["dynamodb:GetItem", "dynamodb:Query"],
+      "resources": ["arn:aws:dynamodb:*:*:table/app"]
+    }
+  ]
+}

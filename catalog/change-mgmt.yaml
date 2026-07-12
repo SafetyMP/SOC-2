@@ -24,10 +24,11 @@
   evidence_validity: P30D
   sensors: [github-api]
   rego_packages:
-    - change_mgmt.min_reviewers_prod
+    - change_mgmt.branch_protection_enforced
   guidance: |
     PRs to production repos require >= 2 approving reviews and pass required
-    status checks (CI, security gates) before merge.
+    status checks (CI, security gates) before merge. Enforced by the
+    branch_protection_enforced policy (required_reviewers rule).
 
 - id: CTRL-CHG-005
   title: Infrastructure changes are gated by policy before apply

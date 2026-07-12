@@ -1,0 +1,22 @@
+{
+  "data_resources": [
+    {
+      "id": "prod-data-bucket",
+      "type": "s3_bucket",
+      "encrypted": true,
+      "environment": "prod"
+    },
+    {
+      "id": "prod-db",
+      "type": "rds",
+      "encrypted": true,
+      "environment": "prod"
+    },
+    {
+      "id": "node-vol-1",
+      "type": "ebs_volume",
+      "encrypted": true,
+      "environment": "prod"
+    }
+  ]
+}

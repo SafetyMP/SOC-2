@@ -1,0 +1,15 @@
+jobs:
+  - payload: fixtures/access/principals.json
+    package: access_control.iam_mfa_enforced
+  - payload: fixtures/access/policies.json
+    package: access_control.no_wildcard_policies
+  - payload: fixtures/encryption/data_resources.json
+    package: encryption.at_rest_required
+  - payload: fixtures/network/endpoints.json
+    package: network.tls_12_required
+  - payload: fixtures/logging/audit_logs.json
+    package: logging.audit_log_enabled
+  - payload: fixtures/change/repos.json
+    package: change_mgmt.branch_protection_enforced
+  - payload: fixtures/backup/datastores.json
+    package: backup.automated_backup_enabled

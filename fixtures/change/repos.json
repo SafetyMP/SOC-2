@@ -1,0 +1,22 @@
+{
+  "repositories": [
+    {
+      "name": "core-service",
+      "environment": "prod",
+      "protected": true,
+      "allow_force_pushes": false,
+      "required_reviewers": 2,
+      "enforce_admins": true,
+      "required_status_checks": true
+    },
+    {
+      "name": "infra-modules",
+      "environment": "prod",
+      "protected": true,
+      "allow_force_pushes": false,
+      "required_reviewers": 2,
+      "enforce_admins": true,
+      "required_status_checks": true
+    }
+  ]
+}

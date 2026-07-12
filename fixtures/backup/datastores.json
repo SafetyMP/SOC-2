@@ -1,0 +1,25 @@
+{
+  "datastores": [
+    {
+      "id": "prod-db",
+      "kind": "rds",
+      "environment": "prod",
+      "backup_enabled": true,
+      "pitr": true
+    },
+    {
+      "id": "prod-cache",
+      "kind": "vm",
+      "environment": "prod",
+      "backup_enabled": true,
+      "pitr": false
+    },
+    {
+      "id": "prod-bucket",
+      "kind": "bucket",
+      "environment": "prod",
+      "backup_enabled": true,
+      "pitr": true
+    }
+  ]
+}
