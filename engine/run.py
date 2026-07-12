@@ -46,6 +46,7 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
 
     verdicts = {}
     evidence = []
+    records = []
     for job in jobs:
         pkg = job["package"]
         payload = _path(job["payload"])
@@ -73,6 +74,7 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
                              "valid_until": record["valid_until"]}
             stored = locker.put(record)
             evidence.append((cid, record["status"], stored))
+            records.append(record)
 
     from sensors import procedural as proc_sensor
     proc_now = as_of or datetime.now(timezone.utc)
@@ -89,16 +91,27 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
                          "valid_until": pv["valid_until"]}
         stored = locker.put(record)
         evidence.append((cid, record["status"], stored))
+        records.append(record)
+
+    from evidence.log import MerkleLog
+    merkle = MerkleLog()
+    for rec in records:
+        merkle.append(rec["fingerprint"])
+    head_path = os.path.join(_REPO_ROOT, "evidence/out/merkle_head.txt")
+    os.makedirs(os.path.dirname(head_path), exist_ok=True)
+    with open(head_path, "w") as fh:
+        fh.write(merkle.head + "\n")
 
     waiver_list = waivers.load_exceptions(_path(exceptions_dir))
     decayed = waivers.apply_decay(verdicts, as_of)
     eval_now = as_of or datetime.now(timezone.utc)
     applied = waivers.apply_waivers(verdicts, waiver_list, eval_now)
-    report(verdicts, catalog, implemented, evidence, applied=applied, decayed=decayed, as_of=as_of)
+    report(verdicts, catalog, implemented, evidence, applied=applied, decayed=decayed, as_of=as_of,
+           merkle=merkle)
     return verdicts
 
 
-def report(verdicts, catalog, implemented, evidence, applied=None, decayed=None, as_of=None):
+def report(verdicts, catalog, implemented, evidence, applied=None, decayed=None, as_of=None, merkle=None):
     applied = applied or []
     decayed = decayed or []
     scope = list(verdicts.keys())
@@ -146,7 +159,11 @@ def report(verdicts, catalog, implemented, evidence, applied=None, decayed=None,
 
     push_count = sum(1 for _, _, st in evidence if st.get("version_id") and not str(st["version_id"]).startswith("<"))
     dest = f"evidence/out/ (+ {push_count} version-pinned to MinIO)" if push_count else "evidence/out/"
-    print(f"evidence: {len(evidence)} records -> {dest}\n")
+    print(f"evidence: {len(evidence)} records -> {dest}")
+    if merkle and merkle.entries:
+        print(f"merkle log: {len(merkle.entries)} entries, head={merkle.head[:24]}... "
+              f"(published to evidence/out/merkle_head.txt)")
+    print()
 
 
 def _parse_as_of(value):
