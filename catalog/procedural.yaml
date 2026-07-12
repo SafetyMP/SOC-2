@@ -1,0 +1,124 @@
+# Catalog — Procedural & Governance (document + date evidence)
+# SOC 2: CC1 (Control Environment), CC3 (Risk), CC7.3/CC7.4 (Incident Response), CC9.2 (Suppliers), P* (Privacy).
+# ISO 27001:2022: A.5.1/A.5.2 (governance), A.5.7 (threat intel), A.5.24-A.5.26 (incident), A.5.19/A.5.20 (suppliers), A.6.3 (awareness), A.5.29/A.5.30 (continuity), A.5.34 (privacy).
+#
+# These controls are NOT sensor-evaluated. Evidence is a signed manifest
+# (docs/readiness-layer-design.md §15) carrying an approval date and a
+# next_review_due; once overdue, the scorer flips the record to EXPIRED.
+
+- id: CTRL-GOV-001
+  title: Information security policy approved and reviewed annually
+  soc2: [CC1.1, CC1.3, CC1.5]
+  iso27001: [A.5.1, A.5.2]
+  criticality: 3
+  assertion_type: policy
+  evidence_validity: P365D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: annual
+  owner: security-lead
+  guidance: A management-approved ISMS/security policy exists and is reviewed at least annually.
+
+- id: CTRL-GOV-002
+  title: Information security roles and responsibilities defined and assigned
+  soc2: [CC1.3, CC1.5]
+  iso27001: [A.5.2]
+  criticality: 2
+  assertion_type: policy
+  evidence_validity: P365D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: annual
+  owner: security-lead
+  guidance: RACI for security responsibilities is documented and current.
+
+- id: CTRL-RISK-001
+  title: Risk register reviewed and updated quarterly
+  soc2: [CC3.1, CC3.2, CC3.3, CC3.4]
+  iso27001: [A.5.1, A.5.7]
+  criticality: 3
+  assertion_type: procedural
+  evidence_validity: P90D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: quarterly
+  owner: security-lead
+  guidance: A risk assessment covering assets, threats, and likelihood/impact is reviewed each quarter with treatment decisions recorded.
+
+- id: CTRL-IR-001
+  title: Incident response plan maintained and tested via tabletop exercise
+  soc2: [CC7.3, CC7.4, CC7.5]
+  iso27001: [A.5.24, A.5.25, A.5.26]
+  criticality: 3
+  assertion_type: procedural
+  evidence_validity: P180D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: semiannual
+  owner: ir-lead
+  guidance: An IR plan exists; a tabletop or drill is run and documented at least semi-annually, with lessons recorded.
+
+- id: CTRL-PEOPLE-001
+  title: Security awareness training completed on hire and annually
+  soc2: [CC1.4, CC2.2]
+  iso27001: [A.6.3]
+  criticality: 2
+  assertion_type: procedural
+  evidence_validity: P365D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: annual-and-on-join
+  owner: people-ops
+  guidance: All personnel complete security/privacy awareness training at onboarding and at least annually thereafter.
+
+- id: CTRL-SUPP-001
+  title: Suppliers assessed for security before onboarding and reviewed annually
+  soc2: [CC9.2]
+  iso27001: [A.5.19, A.5.20, A.5.21]
+  criticality: 2
+  assertion_type: procedural
+  evidence_validity: P365D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: annual
+  owner: procurement
+  guidance: Third parties handling company/customer data undergo a security assessment pre-onboarding and a periodic review.
+
+- id: CTRL-PRIV-001
+  title: Privacy notice and data-handling controls align with applicable privacy requirements
+  soc2: [P1.1, P2.1, P5.1, P5.2, P6.1]
+  iso27001: [A.5.34]
+  criticality: 2
+  assertion_type: policy
+  evidence_validity: P365D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: annual
+  owner: privacy-lead
+  guidance: Privacy obligations (notice, consent, retention, subject rights) are documented and mapped to handling controls; reviewed annually.
+
+- id: CTRL-PI-001
+  title: Processing integrity controls defined for data-processing pipelines
+  soc2: [PI1.1]
+  iso27001: [A.8.15, A.8.16]
+  criticality: 2
+  assertion_type: procedural
+  evidence_validity: P365D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: annual
+  owner: data-eng-lead
+  guidance: Pipelines in scope of PI1 have defined validity/accuracy/completeness checks with monitoring evidence.
+
+- id: CTRL-CONT-001
+  title: Business continuity / ICT readiness plan maintained and reviewed
+  soc2: [A1.2, A1.3]
+  iso27001: [A.5.29, A.5.30]
+  criticality: 2
+  assertion_type: procedural
+  evidence_validity: P365D
+  sensors: [procedural-evidence]
+  rego_packages: []
+  cadence: annual
+  owner: security-lead
+  guidance: Continuity/ICT-readiness plan exists, with recovery objectives, reviewed annually.

@@ -1,0 +1,58 @@
+# Catalog — Change Management
+# SOC 2: CC8 (Change Management), CC5.2. ISO 27001:2022: A.8.32 (change mgmt), A.8.25 (secure dev).
+
+- id: CTRL-CHG-001
+  title: Production branches are protected; no direct push
+  soc2: [CC8.1]
+  iso27001: [A.8.32]
+  criticality: 3
+  assertion_type: technical
+  evidence_validity: P30D
+  sensors: [github-api]
+  rego_packages:
+    - change_mgmt.branch_protection_enforced
+  guidance: |
+    main/release branches enforce branch protection: no direct commits, changes
+    via PR only. Force-pushes are disabled.
+
+- id: CTRL-CHG-002
+  title: Production changes require at least two approver reviews
+  soc2: [CC8.1, CC5.2]
+  iso27001: [A.8.32]
+  criticality: 2
+  assertion_type: technical
+  evidence_validity: P30D
+  sensors: [github-api]
+  rego_packages:
+    - change_mgmt.min_reviewers_prod
+  guidance: |
+    PRs to production repos require >= 2 approving reviews and pass required
+    status checks (CI, security gates) before merge.
+
+- id: CTRL-CHG-005
+  title: Infrastructure changes are gated by policy before apply
+  soc2: [CC8.1]
+  iso27001: [A.8.32, A.8.25]
+  criticality: 3
+  assertion_type: technical
+  evidence_validity: P30D
+  sensors: [terraform-conftest]
+  rego_packages:
+    - change_mgmt.iac_policy_gate
+  guidance: |
+    `terraform apply` is preceded by a conftest policy evaluation over the plan.
+    In enforce mode, policy `deny` blocks the apply (see rollout §12 burn-in).
+
+- id: CTRL-CHG-008
+  title: All deployments are reproducible from version-controlled pipelines
+  soc2: [CC8.1]
+  iso27001: [A.8.32, A.8.19]
+  criticality: 2
+  assertion_type: technical
+  evidence_validity: P90D
+  sensors: [github-api]
+  rego_packages:
+    - change_mgmt.ci_required
+  guidance: |
+    Production deploys originate only from CI; no out-of-band/manual deploys.
+    Pipelines are defined in-repo and version-controlled.

@@ -1,0 +1,55 @@
+name: policy-ci
+
+# Phase 0 policy gate. Validates the Rego library + catalog. This runs in
+# "warn" posture per readiness-layer-design.md §12 — it reports and fails CI on
+# malformed policy, but does NOT block production deploys yet. The conftest IaC
+# enforcement gate (pre-apply) ships with Phase 1 alongside Terraform.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-policies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OPA
+        run: |
+          curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
+          chmod +x opa && sudo mv opa /usr/local/bin/opa
+          opa version
+
+      - name: Format check
+        run: opa fmt --fail policies/
+
+      - name: Compile check
+        run: opa check policies/
+
+      - name: Unit tests
+        run: opa test policies/
+
+  validate-catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Catalog YAML parses
+        run: |
+          python3 - <<'PY'
+          import glob, sys, yaml
+          ok = True
+          for f in glob.glob("catalog/*.yaml"):
+              try:
+                  docs = list(yaml.safe_load_all(open(f)))
+                  for c in docs:
+                      if c is None: continue
+                      for field in ("id","soc2","iso27001","criticality","assertion_type","evidence_validity"):
+                          assert field in c, f"{f}: missing {field} in {c.get('id','?')}"
+                  print(f"OK  {f} ({sum(1 for d in docs if d)} controls)")
+              except Exception as e:
+                  ok = False; print(f"ERR {f}: {e}")
+          sys.exit(0 if ok else 1)
+          PY

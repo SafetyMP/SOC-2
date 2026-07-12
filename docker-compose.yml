@@ -1,0 +1,57 @@
+# Local evidence locker for testing — Phase 0 scaffold.
+#
+# Provides an S3-compatible endpoint (MinIO) with object-lock + versioning so the
+# collect -> evaluate -> package loop can be exercised offline. The Merkle
+# transparency-log service is a Phase 4 deliverable (see evidence/README.md);
+# it will sit alongside MinIO and publish a head hash per evidence batch.
+#
+# Usage:
+#   docker compose up -d
+#   docker compose exec locker-init cat /dev/null   # init runs once at start
+#   # S3 endpoint:  http://localhost:9000  (ak/sk: minioadmin/minioadmin)
+#   # Console:      http://localhost:9001
+#
+# Bucket created: `evidence` with object-lock (governance, 365d default retention).
+
+services:
+  minio:
+    image: minio/minio:latest
+    # 4 erasure-coded drives are the minimum MinIO backend that supports
+    # object-lock (WORM) — this mirrors the cloud object-lock behaviour in prod.
+    command: server /data{1...4} --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web console
+    volumes:
+      - minio-data1:/data1
+      - minio-data2:/data2
+      - minio-data3:/data3
+      - minio-data4:/data4
+
+  locker-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        set -e
+        echo "Waiting for MinIO..."
+        until mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; do
+          sleep 2
+        done
+        mc mb --ignore-existing --with-lock local/evidence
+        mc retention set --default governance 365d local/evidence
+        echo "Locker ready: bucket=local/evidence object-lock=governance(365d)"
+        mc version info local/evidence
+        mc retention info local/evidence
+
+volumes:
+  minio-data1:
+  minio-data2:
+  minio-data3:
+  minio-data4:
