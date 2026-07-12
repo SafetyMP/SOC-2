@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local Entire overrides (per-user; never commit)
+.entire/settings.local.json
+.entire/metadata/
+.entire/logs/
+.entire/redactors/local/
+
+# Local evidence / locker artifacts (never commit evidence locally)
+evidence/out/
+*.log
