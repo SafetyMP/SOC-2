@@ -19,11 +19,11 @@ docker compose up -d                       # starts MinIO + creates object-locke
 
 ## Interface (target contract)
 
-The locker client exposes three operations (to be implemented in Phase 4):
+The locker client exposes three operations:
 
 - `put(record)` — write one evidence record; returns `fingerprint` (sha256) + log entry index. Object-lock (GOVERNANCE) prevents the version from being **purged or overwritten** within retention — it does _not_ prevent a delete marker (see "Smoke-test findings").
 - `get(evidence_id)` — fetch a record + verify its fingerprint.
-- `package(framework)` — emit a signed bundle: SOC 2 criteria checklist or ISO 27001:2022 SoA, each criterion linked to its latest PASS/EXCEPTION records.
+- `package(framework)` — emit a signed bundle: SOC 2 criteria checklist or ISO 27001:2022 SoA, each criterion linked to its latest PASS/EXCEPTION records. **Implemented** — `python3 -m evidence.packaging`.
 
 ## Integrity invariant
 
