@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sensors.github import normalize
+from sensors.github import normalize, filter_repos
 
 REPO = "SafetyMP/SOC-2"
 BRANCH = "main"
@@ -48,6 +48,33 @@ def test_missing_review_count_defaults_zero():
     e = normalize(prot, REPO, BRANCH, environment="nonprod")
     assert e["required_reviewers"] == 0
     assert e["environment"] == "nonprod"
+
+
+def test_filter_repos_public_only_excludes_forks_archived_private():
+    repos = [
+        {"nameWithOwner": "A/pub", "isFork": False, "isArchived": False, "visibility": "PUBLIC"},
+        {"nameWithOwner": "B/fork", "isFork": True, "isArchived": False, "visibility": "PUBLIC"},
+        {"nameWithOwner": "C/old", "isFork": False, "isArchived": True, "visibility": "PUBLIC"},
+        {"nameWithOwner": "D/priv", "isFork": False, "isArchived": False, "visibility": "PRIVATE"},
+    ]
+    assert filter_repos(repos, "public") == ["A/pub"]
+
+
+def test_filter_repos_private_only():
+    repos = [
+        {"nameWithOwner": "A/pub", "isFork": False, "isArchived": False, "visibility": "PUBLIC"},
+        {"nameWithOwner": "D/priv", "isFork": False, "isArchived": False, "visibility": "PRIVATE"},
+    ]
+    assert filter_repos(repos, "private") == ["D/priv"]
+
+
+def test_filter_repos_all_still_excludes_forks_archived():
+    repos = [
+        {"nameWithOwner": "A/pub", "isFork": False, "isArchived": False, "visibility": "PUBLIC"},
+        {"nameWithOwner": "B/fork", "isFork": True, "isArchived": False, "visibility": "PUBLIC"},
+        {"nameWithOwner": "D/priv", "isFork": False, "isArchived": False, "visibility": "PRIVATE"},
+    ]
+    assert filter_repos(repos, "all") == ["A/pub", "D/priv"]
 
 
 def main():
