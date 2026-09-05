@@ -1,4 +1,7 @@
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.catalog import Catalog, Control
 from engine.scorer import score, PASS, FAIL, EXCEPTION, MISSING
@@ -78,6 +81,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     main()

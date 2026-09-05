@@ -2,12 +2,15 @@
 
 Harness profile: **solo** — hermetic verify only (no Docker in stop hook).
 
+This repo is an OSS **reference** for a readiness layer. It does **not** certify
+SOC 2 compliance.
+
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `./scripts/verify.sh` | Definition of Done (catalog + IaC warn gate + stub canary) |
-| `./scripts/assess.sh` | Live readiness assessment (sensors → score → auditor package) |
+| `./scripts/verify.sh` | Definition of Done (canary + harness + catalog + unit tests + IaC warn gate) |
+| `python3 -m engine.run` | Fixture readiness assessment (sensors → score). Optional: `--live` / `--org` |
 | `./scripts/iac_gate.sh` | Rego policy over terraform plan (`warn` or `enforce`) |
 
 ## Definition of Done
@@ -16,4 +19,4 @@ Harness profile: **solo** — hermetic verify only (no Docker in stop hook).
 ./scripts/verify.sh
 ```
 
-Integration assessment (`assess.sh --live`) is CI/nightly and manual — not wired to verify-on-stop.
+Live GitHub collection (`python3 -m engine.run --live`) is manual — not wired to verify-on-stop.
