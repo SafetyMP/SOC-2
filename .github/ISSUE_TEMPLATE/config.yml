@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/SafetyMP/SOC-2/security/advisories/new
+    about: Report privately via GitHub Security Advisories — never post undisclosed vulnerabilities as public issues.
+  - name: Contributing guide
+    url: https://github.com/SafetyMP/SOC-2/blob/main/CONTRIBUTING.md
+    about: Local setup, ./scripts/verify.sh, and pull request expectations.
+  - name: Design pivot / pack intent
+    url: https://github.com/SafetyMP/SOC-2/blob/main/docs/DESIGN-PIVOT.md
+    about: Why this repo is a readiness-sensor pack, not a GRC product or certification.

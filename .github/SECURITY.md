@@ -8,8 +8,6 @@ catalog + GitHub/org sensors). It is **not** a certified audit product,
 of this repository is SOC 2 certified. Treat readiness scores and sample
 evidence as fixtures unless you replace them with your own systems.
 
-GitHub also serves [`.github/SECURITY.md`](.github/SECURITY.md).
-
 ## Reporting a Vulnerability
 
 **Do not open a public GitHub issue** for undisclosed security vulnerabilities.

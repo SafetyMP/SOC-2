@@ -1,0 +1,19 @@
+# SOC-2
+
+> OPA/Rego readiness-sensor example pack for SafetyMP / corporate-site-harness. Catalog + GitHub/org sensors emit evidence. Not a CPA opinion. Not SOC 2 certified.
+
+This repository is a policy + sensor pack. Community and Copilot agents may run `./scripts/verify.sh`. They must not claim certification or implement a new factory program here.
+
+## Docs
+
+- [DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md): sensor-pack positioning
+- [AGENTS.md](AGENTS.md): verify contract and honesty rules
+- [README.md](README.md): what this is / is not, quick start
+- [Copilot instructions](.github/copilot-instructions.md): never-do rules
+- [SECURITY.md](SECURITY.md) / [.github/SECURITY.md](.github/SECURITY.md): vulnerability reporting
+
+## Verify
+
+```bash
+./scripts/verify.sh
+```

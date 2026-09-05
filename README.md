@@ -1,24 +1,27 @@
-# SOC-2 readiness layer (reference)
+# SOC-2 — OPA/Rego readiness sensors
 
-**Evergreen open-source reference** for a **SOC 2 / ISO 27001 readiness layer**
-over policy-as-code — a version-controlled control catalog, OPA/Rego checks,
-sensors, an evidence locker, and a Terraform plan gate. Part of the
-[SafetyMP](https://github.com/SafetyMP) portfolio.
+**Readiness-sensor example pack** for [SafetyMP](https://github.com/SafetyMP)
+and
+[corporate-site-harness](https://github.com/SafetyMP/corporate-site-harness):
+a version-controlled control catalog, OPA/Rego checks, and GitHub/org sensors
+that emit **evidence**, not a CPA opinion.
 
 [![policy-ci](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/SafetyMP/SOC-2)](LICENSE)
 
-> **Scope:** Runnable reference architecture and Phase 1 slice — **not** a
-> certified audit product, **not** a SOC 2 Type I/II report, and **not** a claim
-> that SafetyMP or any user of this repository is SOC 2 certified. An auditor
-> still opines. See [SECURITY.md](SECURITY.md).
+Positioning: [docs/DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md).
+
+> **Scope:** Runnable policy + sensor pack — **not** a certified audit product,
+> **not** a SOC 2 Type I/II report, and **not** a claim that SafetyMP or any
+> user of this repository is SOC 2 certified. An auditor still opines. See
+> [SECURITY.md](SECURITY.md).
 
 ## What this is
 
-A **readiness layer** maps one control catalog to SOC 2 Trust Services Criteria
-and ISO/IEC 27001:2022 Annex A, then evaluates **fixtures** (and optional live
-GitHub sensors) so gaps show up as failing or expired controls rather than a
-stale spreadsheet.
+OPA/Rego readiness sensors over one catalog. Frameworks (SOC 2 Trust Services
+Criteria, ISO/IEC 27001:2022 Annex A) are **views**, not separate products.
+Fixtures and optional live GitHub sensors produce failing or expired controls
+instead of a stale spreadsheet.
 
 | Layer | In this repo | Status |
 |-------|--------------|--------|
@@ -37,9 +40,12 @@ does not silently score green.
 ## What this is not
 
 - A SOC 2 **certification**, attestation, or CPA opinion
-- A replacement for an ISMS, SIEM, or production object-lock locker
+- A standalone GRC / audit product or a replacement for an ISMS, SIEM, or
+  production object-lock locker
 - Evidence you can show an auditor without replacing sample manifests, fixtures,
   and demo locker credentials with your own systems
+- A new corporate-site-harness program (that wiring is a later factory slice;
+  see [DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md))
 
 ## Quick start
 
@@ -78,11 +84,13 @@ docker compose up -d
 |------|------|
 | [catalog/](catalog/README.md) | Canonical control IDs ↔ SOC 2 TSC ↔ ISO 27001 |
 | [policies/](policies/) | Rego library + `opa test` |
-| [sensors/](sensors/README.md) | Normalized JSON adapters |
+| [sensors/](sensors/README.md) | Normalized JSON adapters (GitHub/org, Terraform, procedural) |
 | [engine/](engine/README.md) | Eval, score, waivers |
 | [evidence/](evidence/README.md) | Locker client, Merkle log, auditor packaging |
+| [docs/DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md) | Sensor-pack positioning (not a GRC product) |
 | [docs/readiness-layer-design.md](docs/readiness-layer-design.md) | Architecture (design + implemented Phase 1) |
 | [AGENTS.md](AGENTS.md) | Agent verify contract |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to propose changes |
 
 ## License
 
