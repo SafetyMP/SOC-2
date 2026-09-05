@@ -1,9 +1,10 @@
-# AGENTS.md — SOC-2 readiness platform
+# AGENTS.md — SOC-2 readiness-sensor pack
 
 Harness profile: **solo** — hermetic verify only (no Docker in stop hook).
 
-This repo is an OSS **reference** for a readiness layer. It does **not** certify
-SOC 2 compliance.
+This repo is an OSS **policy + sensor pack** (OPA/Rego catalog, GitHub/org
+sensors, evidence records). It does **not** certify SOC 2 compliance and is
+not a standalone GRC product. See [docs/DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md).
 
 ## Commands
 
@@ -20,3 +21,6 @@ SOC 2 compliance.
 ```
 
 Live GitHub collection (`python3 -m engine.run --live`) is manual — not wired to verify-on-stop.
+
+Do not implement a new corporate-site-harness program in this repository without
+the corporate CEO workflow.
