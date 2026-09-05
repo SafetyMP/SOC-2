@@ -11,7 +11,7 @@ that emit **evidence**, not a CPA opinion.
 
 Positioning: [docs/DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md).
 
-> **In the SafetyMP thesis:** Policy + evidence sensors for a readiness catalog. Not an agent workforce and not a live factory program. See the [portfolio README](https://github.com/SafetyMP/SafetyMP).
+> **Permit rule:** A readiness score is not a CPA opinion. Sensors emit evidence; an auditor still opines. Same instinct: [SafetyMP](https://github.com/SafetyMP/SafetyMP).
 
 > **Scope:** Runnable policy + sensor pack — **not** a certified audit product,
 > **not** a SOC 2 Type I/II report, and **not** a claim that SafetyMP or any
