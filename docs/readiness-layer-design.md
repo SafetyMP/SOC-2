@@ -1,6 +1,6 @@
 # SOC 2 / ISO 27001 Readiness Layer over Policy-as-Code
 
-**Status:** Design (no code yet) · **Engine:** OPA / Rego · **Audience:** Security engineering, GRC, audit
+**Status:** Design plus a Phase 1 reference implementation (catalog, Rego slice, sensors, scorer, locker, IaC warn gate). **Not a SOC 2 certification.** · **Engine:** OPA / Rego · **Audience:** Security engineering, GRC, audit
 **Scope:** IaC (Terraform), Kubernetes, Cloud accounts (AWS/Azure/GCP), CI/CD & GitHub, Code (SAST/SCA/secrets)
 
 ---

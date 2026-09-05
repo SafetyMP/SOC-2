@@ -130,7 +130,7 @@ Policies: `backup.automated_backup_enabled` (CTRL-BKP-001)
 | Sensor                          | Status          | Notes                                                                                         |
 | ------------------------------- | --------------- | --------------------------------------------------------------------------------------------- |
 | `github-api`                    | **implemented** | `sensors/github.py` reads live branch protection via `gh api`; `python3 -m engine.run --live` |
-| `terraform-conftest`            | designed        | conftest over `terraform show -json plan`; gate workflow Phase 1                              |
+| `terraform`                     | **implemented** | `sensors/terraform.py` + `scripts/iac_gate.sh` (plan JSON → Rego); CI warn-mode                |
 | `cloud-steampipe`               | stub            | Steampipe queries per provider -> payloads above (Phase 2)                                    |
 | `code-*` (semgrep/osv/gitleaks) | stub            | findings -> normalized finding JSON (Phase 3)                                                 |
 | `k8s-gatekeeper`                | stub            | Gatekeeper audit dump (Phase 2)                                                               |
