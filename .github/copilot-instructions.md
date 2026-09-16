@@ -27,3 +27,7 @@ python3 -m engine.run
 
 Community contract: [AGENTS.md](../AGENTS.md).
 Positioning: [docs/DESIGN-PIVOT.md](../docs/DESIGN-PIVOT.md).
+
+## Coding standards
+
+Follow path-specific files in [`.github/instructions/`](instructions/). Copilot code review loads [`.github/skills/code-review/`](skills/code-review/).

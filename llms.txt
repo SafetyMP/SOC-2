@@ -17,3 +17,6 @@ This repository is a policy + sensor pack. Community and Copilot agents may run 
 ```bash
 ./scripts/verify.sh
 ```
+- [.github/copilot-instructions.md](.github/copilot-instructions.md): repository-wide Copilot coding standards
+- [.github/instructions/](.github/instructions/): path-specific Copilot coding standards (September 2026)
+- [.github/skills/code-review/SKILL.md](.github/skills/code-review/SKILL.md): Copilot code review skill
