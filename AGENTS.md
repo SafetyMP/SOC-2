@@ -24,3 +24,9 @@ Live GitHub collection (`python3 -m engine.run --live`) is manual — not wired 
 
 Do not implement a new corporate-site-harness program in this repository without
 the corporate CEO workflow.
+
+## Coding standards (September 2026)
+
+Path-specific Copilot instructions: [`.github/instructions/`](.github/instructions/).
+Repository-wide Copilot file: [`.github/copilot-instructions.md`](.github/copilot-instructions.md).
+Copilot code review skill: [`.github/skills/code-review/SKILL.md`](.github/skills/code-review/SKILL.md).
