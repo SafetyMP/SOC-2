@@ -1,13 +1,27 @@
 #!/usr/bin/env bash
 # IaC enforcement gate (L7) — runs the Rego policy library over a terraform plan.
 # Usage: scripts/iac_gate.sh [warn|enforce]   (default: warn, per design §12 burn-in)
-#   warn    — report violations, exit 0
-#   enforce — exit 1 on any violation (blocks terraform apply / the PR)
+#   warn    — report violations and exit 0; an empty payload prints MISSING and exits 1
+#   enforce — exit 1 on any violation or on an empty payload
+#
+# IAC_PAYLOAD, when set, scores that already-normalized JSON and skips terraform.
 set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
 MODE="${1:-warn}"
 DIR="${IAC_DIR:-terraform-examples}"
 PKG="${IAC_PKG:-encryption.at_rest_required}"
+
+run_gate() {
+  python3 -m engine.iac_gate --mode "$MODE" --package "$PKG" --payload "$1"
+}
+
+if [[ -n "${IAC_PAYLOAD:-}" ]]; then
+  run_gate "$IAC_PAYLOAD" || exit $?
+  exit 0
+fi
 
 command -v terraform >/dev/null || { echo "terraform not found"; exit 2; }
 command -v opa >/dev/null        || { echo "opa not found";        exit 2; }
@@ -26,22 +40,5 @@ echo ">> normalize plan -> data_resources"
 python3 -m sensors.terraform --plan "$PLANJSON" --out "$PAYLOAD" >/dev/null
 
 echo ">> policy gate: $PKG ($MODE mode)"
-DENY=$(opa eval -f json -d policies -i "$PAYLOAD" "data.$PKG.deny" \
-  | python3 -c "import sys,json
-d=json.load(sys.stdin)
-r=d.get('result',[])
-v=r[0]['expressions'][0]['value'] if r else []
-print('\n'.join(v) if isinstance(v,list) else str(v))")
-
-if [ -z "$DENY" ]; then
-  echo "PASS: no policy violations"
-  exit 0
-fi
-echo "FINDINGS:"
-echo "$DENY"
-if [ "$MODE" = "enforce" ]; then
-  echo "BLOCK: enforce mode - plan rejected"
-  exit 1
-fi
-echo "(warn mode - not blocking)"
+run_gate "$PAYLOAD" || exit $?
 exit 0

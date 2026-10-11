@@ -1,9 +1,53 @@
 # Control catalog (L0)
 
-The catalog is the **single source of truth** for every obligation. Frameworks
-(SOC 2, ISO 27001) are _views_ over it, not separate rulebooks. Every Rego rule
-(L1) and every sensor (L2) references these stable local IDs so attribution is
-automatic.
+This directory is the input list for the local scorer. The scorer evaluates
+the wired controls below and nothing else. It is not the source of truth for
+a full-scope SOC 2 exam or for ISO/IEC 27001:2022 Annex A. `soc2` and
+`iso27001` fields are reference labels stored on a control. They are not a
+certification mapping.
+
+An empty payload or an empty list on a technical control scores **MISSING**.
+
+## Wired controls
+
+### Technical (OPA/Rego)
+
+`engine/jobs.yaml` routes these packages. Each one needs a non-empty array in
+the named field.
+
+| ID | Rego package | Payload field |
+| --- | --- | --- |
+| CTRL-ACCESS-001 | `access_control.iam_mfa_enforced` | `principals` |
+| CTRL-ACCESS-003 | `access_control.no_wildcard_policies` | `policies` |
+| CTRL-CHG-001 | `change_mgmt.branch_protection_enforced` | `repositories` |
+| CTRL-CHG-002 | `change_mgmt.branch_protection_enforced` | `repositories` |
+| CTRL-ENC-001 | `encryption.at_rest_required` | `data_resources` |
+| CTRL-NET-008 | `network.tls_12_required` | `endpoints` |
+| CTRL-LOG-001 | `logging.audit_log_enabled` | `audit_logs` |
+| CTRL-BKP-001 | `backup.automated_backup_enabled` | `datastores` |
+
+### Procedural (date manifests)
+
+`sensors/procedural.py` reads `procedural/manifests.yaml`. PASS means
+`next_review_due` is still in the future. The scorer does not open or verify
+`document_ref`.
+
+- CTRL-GOV-001, CTRL-GOV-002
+- CTRL-RISK-001
+- CTRL-IR-001
+- CTRL-PEOPLE-001
+- CTRL-SUPP-001
+- CTRL-PRIV-001
+- CTRL-PI-001
+- CTRL-CONT-001
+
+## Not scored
+
+The YAML files also name controls this job does not run. Those IDs do not
+affect the score. Examples that have no Rego package in this tree:
+`change_mgmt.iac_policy_gate`, `change_mgmt.ci_required`,
+`encryption.cmk_required_for_prod`, `encryption.no_hardcoded_secrets`, and
+`data.lifecycle_enforced`.
 
 ## Schema
 
@@ -13,36 +57,27 @@ Each control is a YAML map:
 | ------------------- | --------------------------------------- | ----------------------------------------------------------------------------------- |
 | `id`                | string                                  | Stable local ID: `CTRL-<DOMAIN>-<NNN>`                                              |
 | `title`             | string                                  | One-line statement of the control                                                   |
-| `soc2`              | list                                    | SOC 2 TSC refs (CC*._, A1._, C1._, PI1._, P*.*)                                     |
-| `iso27001`          | list                                    | ISO/IEC 27001:2022 Annex A refs (A._._)                                             |
+| `soc2`              | list                                    | Reference labels only. Not a SOC 2 exam scope.                                      |
+| `iso27001`          | list                                    | Reference labels only. Not an ISO/IEC 27001 certification scope.                   |
 | `criticality`       | int 1-3                                 | Weight used by the readiness scorer (L4)                                            |
 | `assertion_type`    | `technical` \| `procedural` \| `policy` | Technical = sensor-evaluated; procedural = document + date; policy = governance doc |
 | `evidence_validity` | ISO-8601 duration                       | `P30D` etc.; stale evidence → EXPIRED                                               |
 | `sensors`           | list                                    | Which L2 adapters produce evidence                                                  |
 | `rego_packages`     | list                                    | Which Rego packages evaluate this control (technical only)                          |
-| `guidance`          | string                                  | Implementation / audit notes                                                        |
+| `guidance`          | string                                  | Implementation notes. Not an audit opinion.                                         |
 
 ## Files
 
-| File                      | Domain                                                             |
-| ------------------------- | ------------------------------------------------------------------ |
-| `access-control.yaml`     | Identity, MFA, least privilege, source-code access                 |
-| `encryption.yaml`         | At-rest and in-transit cryptography                                |
-| `logging.yaml`            | Audit logging, monitoring, clock sync                              |
-| `network.yaml`            | Segmentation, public exposure, TLS                                 |
-| `change-mgmt.yaml`        | Branch protection, reviews, change control                         |
-| `vulnerability-mgmt.yaml` | Patching, SAST/SCA, secrets in code                                |
-| `backup.yaml`             | Backups and restore testing                                        |
-| `procedural.yaml`         | Governance, risk, IR, awareness, supplier (document+date evidence) |
-
-## Framework coverage
-
-This catalog targets **full-scope SOC 2** (CC1-CC9 + A1 Availability + C1
-Confidentiality + PI1 Processing Integrity + P1-P8 Privacy) and **ISO/IEC
-27001:2022 Annex A** (A.5 Organizational, A.6 People, A.7 Physical, A.8
-Technological). Privacy (P*) and Processing Integrity (PI1) criteria are
-primarily procedural/organizational and are represented in `procedural.yaml`
-plus data-lifecycle entries in `encryption.yaml`.
+| File                      | Wired IDs in this scorer                                      |
+| ------------------------- | ------------------------------------------------------------- |
+| `access-control.yaml`     | CTRL-ACCESS-001, CTRL-ACCESS-003                              |
+| `encryption.yaml`         | CTRL-ENC-001                                                  |
+| `logging.yaml`            | CTRL-LOG-001                                                  |
+| `network.yaml`            | CTRL-NET-008                                                  |
+| `change-mgmt.yaml`        | CTRL-CHG-001, CTRL-CHG-002                                    |
+| `backup.yaml`             | CTRL-BKP-001                                                  |
+| `procedural.yaml`         | The nine manifest controls listed above                       |
+| `vulnerability-mgmt.yaml` | None. Entries in this file are not scored.                    |
 
 ## Versioning
 

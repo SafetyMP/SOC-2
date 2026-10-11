@@ -32,7 +32,8 @@ Inputs: `catalog/` (controls), `policies/` (Rego), `engine/jobs.yaml`
 ## Verdict state machine
 
 ```
-sensor ──► PASS | FAIL              (evaluator)
+sensor ──► PASS | FAIL              (evaluator, only when the payload has rows)
+empty payload / empty list ──► MISSING
 no result / error ──► MISSING       (sensor broken or pkg not implemented)
 PASS with valid_until < as_of ──► EXPIRED   (decay; nightly recompute / --as-of)
 FAIL + unexpired waiver ──► EXCEPTION       (waiver eval)
