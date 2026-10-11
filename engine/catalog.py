@@ -78,6 +78,6 @@ class Catalog:
             with open(path) as fh:
                 for line in fh:
                     m = re.match(r"^package\s+(\S+)", line)
-                    if m:
+                    if m and not m.group(1).startswith("lib."):
                         declared.add(m.group(1))
         return declared

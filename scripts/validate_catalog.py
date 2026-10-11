@@ -40,7 +40,7 @@ def declared_packages():
         with open(pf) as fh:
             for line in fh:
                 m = re.match(r"^package\s+(\S+)", line)
-                if m:
+                if m and not m.group(1).startswith("lib."):
                     pkgs.add(m.group(1))
     return pkgs
 
