@@ -429,6 +429,8 @@ This sequence avoids breaking the business on immature rules while guaranteeing 
 
 ## 15. Procedural evidence ownership (recommendation)
 
+The sensor that shipped, `sensors/procedural.py`, uses `control_id` and `next_review_due` only. It does not check a signature, and it does not open `document_ref`. The signed-manifest shape below is the original recommendation.
+
 Procedural controls (CC1.1 policy approval, CC3.x risk review, CC7.4 IR drills, A.6.3 awareness, CC9.2 supplier review) cannot be sensed from infrastructure — they are documents + dates. They still must be policy-as-code traceable and must decay when overdue.
 
 - **Accountability = one owner per procedural control (RACI "A").** The **Security/GRC lead** owns the _cadence tracker_ — a `procedural-evidence` sensor that reads a signed manifest and checks due dates. **Domain owners produce the artifact**: infra lead → backup restore-test log; IR lead → tabletop drill record; people ops → awareness-training completion; procurement → supplier security review.
