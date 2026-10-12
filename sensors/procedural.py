@@ -31,7 +31,27 @@ def load_manifests(manifest_dir):
     return out
 
 
-def evaluate(manifest, now):
+def _document_present(manifest, root):
+    ref = manifest.get("document_ref")
+    if not isinstance(ref, str) or not ref.strip():
+        return False
+    if os.path.isabs(ref):
+        return False
+    parts = ref.replace("\\", "/").split("/")
+    if any(part == ".." or part == "" for part in parts):
+        return False
+    path = os.path.realpath(os.path.join(root, *parts))
+    root_real = os.path.realpath(root)
+    if path != root_real and not path.startswith(root_real + os.sep):
+        return False
+    return os.path.isfile(path) and os.path.getsize(path) > 0
+
+
+def evaluate(manifest, now, root):
+    if not _document_present(manifest, root):
+        return {"status": MISSING,
+                "findings": ["document_ref is missing or not a file in the repo"],
+                "valid_until": None}
     raw_due = manifest.get("next_review_due")
     due = _parse(raw_due)
     if due is None:
@@ -46,14 +66,16 @@ def evaluate(manifest, now):
             "valid_until": valid_until}
 
 
-def collect(manifest_dir, now=None):
+def collect(manifest_dir, now=None, root=None):
     now = now or datetime.now(timezone.utc)
+    if root is None:
+        root = os.path.dirname(os.path.abspath(manifest_dir))
     out = {}
     for m in load_manifests(manifest_dir):
         cid = m.get("control_id")
         if not cid:
             continue
-        ev = evaluate(m, now)
+        ev = evaluate(m, now, root)
         ev["_manifest"] = m
         out[cid] = ev
     return out

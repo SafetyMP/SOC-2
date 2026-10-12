@@ -10,8 +10,9 @@ repository is a YAML manifest. `sensors/procedural.py` uses `control_id` and
 
 For each manifest, at scoring time:
 
-- `next_review_due` in the future → **PASS** (review is current)
-- `next_review_due` in the past → **EXPIRED** (review overdue; readiness drops)
+- `document_ref` missing, empty, or outside the repo → **MISSING**
+- `next_review_due` in the future and the file exists → **PASS** (review is current)
+- `next_review_due` in the past and the file exists → **EXPIRED** (review overdue; readiness drops)
 - no manifest for a procedural control → **MISSING** (control not implemented)
 
 The engine ingests these verdicts alongside the technical (Rego) verdicts, so
@@ -23,7 +24,7 @@ appear together in the auditor package.
 | Field             | Required | Meaning                                                                     |
 | ----------------- | -------- | --------------------------------------------------------------------------- |
 | `control_id`      | yes      | Catalog control this attests (must be `assertion_type: procedural\|policy`) |
-| `document_ref`    | yes      | Where the artifact lives (path / git ref / locker URI)                      |
+| `document_ref`    | yes      | Repo-relative path of the artifact. A missing file is MISSING, not PASS.   |
 | `approved_at`     | yes      | When the activity was completed/approved (ISO-8601)                         |
 | `approved_by`     | yes      | Who approved it (accountable)                                               |
 | `next_review_due` | yes      | When the next review is due (ISO-8601); drives EXPIRED decay                |
@@ -32,8 +33,9 @@ appear together in the auditor package.
 ## Files
 
 - `manifests.yaml` — **SAMPLE** attestations for the 9 procedural/policy
-  controls. Replace with real, approver-signed records before relying on the
-  score. One (CTRL-RISK-001) is intentionally overdue to demonstrate decay.
+  controls. The `document_ref` paths are not files in this repo, so the sensor
+  scores them MISSING. CTRL-RISK-001 is also past its review date; once its
+  file exists, that date scores EXPIRED.
 
 ## Running
 

@@ -1,9 +1,18 @@
+import json
 import os
 import sys
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sensors.github import normalize, filter_repos
+from sensors.github import (
+    SensorError,
+    ci_workflow_present,
+    fetch_ci_workflow,
+    filter_repos,
+    list_repos,
+    normalize,
+)
 
 REPO = "SafetyMP/SOC-2"
 BRANCH = "main"
@@ -75,6 +84,83 @@ def test_filter_repos_all_still_excludes_forks_archived():
         {"nameWithOwner": "D/priv", "isFork": False, "isArchived": False, "visibility": "PRIVATE"},
     ]
     assert filter_repos(repos, "all") == ["A/pub", "D/priv"]
+
+
+class _Proc:
+    def __init__(self, returncode, stdout, stderr=""):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def _patch_gh(returncode, stdout, stderr=""):
+    def fake_run(*_args, **_kwargs):
+        return _Proc(returncode, stdout, stderr)
+
+    return patch("sensors.github.subprocess.run", fake_run)
+
+
+def test_list_repos_nonzero_raises_sensor_error():
+    with _patch_gh(1, "", stderr="auth required"):
+        try:
+            list_repos("acme")
+        except SensorError as e:
+            assert "auth required" in str(e)
+            return
+    raise AssertionError("expected SensorError")
+
+
+def test_list_repos_invalid_json_raises_sensor_error():
+    with _patch_gh(0, "not-json"):
+        try:
+            list_repos("acme")
+        except SensorError:
+            return
+    raise AssertionError("expected SensorError")
+
+
+def test_list_repos_empty_array_returns_empty():
+    with _patch_gh(0, "[]"):
+        assert list_repos("acme") == []
+
+
+def test_ci_workflow_present_counts_and_lists():
+    assert ci_workflow_present({"total_count": 2}) is True
+    assert ci_workflow_present({"total_count": 0}) is False
+    assert ci_workflow_present({"workflows": [{"name": "ci"}]}) is True
+
+
+def test_fetch_ci_workflow_nonzero_raises_sensor_error():
+    with _patch_gh(1, "", stderr="workflows unavailable"):
+        try:
+            fetch_ci_workflow("acme/repo")
+        except SensorError as e:
+            assert "workflows unavailable" in str(e)
+            return
+    raise AssertionError("expected SensorError")
+
+
+def test_normalize_sets_ci_workflow_on_protected_branch():
+    prot = {
+        "allow_force_pushes": {"enabled": False},
+        "required_pull_request_reviews": {"required_approving_review_count": 2},
+        "enforce_admins": {"enabled": True},
+        "required_status_checks": {"strict": True, "contexts": ["ci/build"]},
+    }
+    e = normalize(prot, REPO, BRANCH, ci_workflow=True)
+    assert e["protected"] is True
+    assert e["ci_workflow"] is True
+
+
+def test_list_repos_public_non_fork_returns_name():
+    stdout = json.dumps([{
+        "nameWithOwner": "A/pub",
+        "isFork": False,
+        "isArchived": False,
+        "visibility": "PUBLIC",
+    }])
+    with _patch_gh(0, stdout):
+        assert list_repos("acme") == ["A/pub"]
 
 
 def main():

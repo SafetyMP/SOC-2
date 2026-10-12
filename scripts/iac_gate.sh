@@ -12,14 +12,21 @@ cd "$ROOT"
 
 MODE="${1:-warn}"
 DIR="${IAC_DIR:-terraform-examples}"
-PKG="${IAC_PKG:-encryption.at_rest_required}"
+# Default evaluates both packages. IAC_PKG, when set, evaluates only that package.
+if [ -n "${IAC_PKG:-}" ]; then
+  PKGS=("$IAC_PKG")
+else
+  PKGS=(encryption.at_rest_required change_mgmt.iac_policy_gate)
+fi
 
 run_gate() {
-  python3 -m engine.iac_gate --mode "$MODE" --package "$PKG" --payload "$1"
+  python3 -m engine.iac_gate --mode "$MODE" --package "$1" --payload "$2"
 }
 
 if [[ -n "${IAC_PAYLOAD:-}" ]]; then
-  run_gate "$IAC_PAYLOAD" || exit $?
+  for pkg in "${PKGS[@]}"; do
+    run_gate "$pkg" "$IAC_PAYLOAD" || exit $?
+  done
   exit 0
 fi
 
@@ -39,6 +46,8 @@ terraform -chdir="$DIR" show -json "$PLAN" > "$PLANJSON"
 echo ">> normalize plan -> data_resources"
 python3 -m sensors.terraform --plan "$PLANJSON" --out "$PAYLOAD" >/dev/null
 
-echo ">> policy gate: $PKG ($MODE mode)"
-run_gate "$PAYLOAD" || exit $?
+echo ">> policy gate: ${PKGS[*]} ($MODE mode)"
+for pkg in "${PKGS[@]}"; do
+  run_gate "$pkg" "$PAYLOAD" || exit $?
+done
 exit 0

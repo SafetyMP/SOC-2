@@ -28,7 +28,8 @@
   guidance: |
     PRs to production repos require >= 2 approving reviews and pass required
     status checks (CI, security gates) before merge. Enforced by the
-    branch_protection_enforced policy (required_reviewers rule).
+    branch_protection_enforced policy (required_reviewers and
+    required_status_checks).
 
 - id: CTRL-CHG-005
   title: Infrastructure changes are gated by policy before apply

@@ -7,7 +7,8 @@
       "allow_force_pushes": false,
       "required_reviewers": 2,
       "enforce_admins": true,
-      "required_status_checks": true
+      "required_status_checks": true,
+      "ci_workflow": true
     },
     {
       "name": "infra-modules",
@@ -16,7 +17,8 @@
       "allow_force_pushes": false,
       "required_reviewers": 2,
       "enforce_admins": true,
-      "required_status_checks": true
+      "required_status_checks": true,
+      "ci_workflow": true
     }
   ]
 }

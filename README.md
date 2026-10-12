@@ -19,15 +19,16 @@ no rows is not a pass.
 | Layer | In this repo | What the scorer uses |
 |-------|--------------|----------------------|
 | L0 Catalog | `catalog/` | Wired IDs only. The YAML still lists controls this job does not run |
-| L1 Policy | `policies/` | The 7 Rego packages in `engine/jobs.yaml`, plus `lib.payload` (empty input is not a pass) |
+| L1 Policy | `policies/` | The 10 Rego packages in `engine/jobs.yaml`, plus `lib.payload` (empty input is not a pass) |
 | L2 Sensors | `sensors/` | GitHub, Terraform, and procedural manifests. Cloud, Kubernetes, and SAST adapters are stubs and are not scored |
 | L3–L4 Engine | `engine/` | Evaluator + clean/effective scorer |
 | L5 Locker | `evidence/` + `docker-compose.yml` | Dev locker image is `pgsty/silo` (Docker Hub deleted `minio/minio`). Prod replica is stubbed |
 | L6 Waivers | `exceptions/` | Time-boxed policy-as-data. Waivers do not count as clean |
-| L7 IaC gate | `scripts/iac_gate.sh` | Warn-mode sample Terraform for encryption at rest only |
+| L7 IaC gate | `scripts/iac_gate.sh` | Warn-mode sample Terraform for encryption at rest and the infrastructure approval gate |
 
-Unimplemented Rego is reported separately from the score so a missing package
-does not count as green.
+Current wired slice: **11 technical + 9 procedural** controls of 37 catalog
+entries. Unimplemented Rego is reported separately from the score so a missing
+package does not count as green.
 
 ## What this is not
 
@@ -52,11 +53,14 @@ Requires `python3`, [PyYAML](https://pypi.org/project/PyYAML/),
 [OPA](https://www.openpolicyagent.org/docs/latest/#running-opa), and
 [Terraform](https://developer.hashicorp.com/terraform/install) on `PATH`.
 
-Fixture assessment (not wired to the stop-hook):
+Install the wired scorer from this checkout, then run it. `pip install -e .` puts `soc2-score` on `PATH`. Policies stay in this tree; an empty sensor payload scores `MISSING`, not `PASS`. This is not a certification.
 
 ```bash
-python3 -m engine.run
+pip install -e .
+soc2-score
 ```
+
+`python3 -m engine.run` is the same command.
 
 IaC gate over `terraform-examples/` (intentional unencrypted RDS should appear
 as a finding; `warn` exits 0, `enforce` exits 1):

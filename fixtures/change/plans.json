@@ -1,0 +1,10 @@
+{
+  "plans": [
+    {
+      "id": "terraform",
+      "environment": "prod",
+      "mutating": true,
+      "approved": true
+    }
+  ]
+}

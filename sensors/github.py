@@ -5,6 +5,10 @@ import re
 import subprocess
 
 
+class SensorError(RuntimeError):
+    """The GitHub sensor could not read a repository list from gh."""
+
+
 def _gh(path):
     proc = subprocess.run(["gh", "api", path], capture_output=True, text=True)
     if proc.returncode != 0:
@@ -22,12 +26,13 @@ def origin_repo():
     return m.group(1) if m else None
 
 
-def normalize(prot, repo, branch, environment="prod"):
+def normalize(prot, repo, branch, environment="prod", ci_workflow=False):
     if not prot:
         return {
             "name": repo, "environment": environment, "protected": False,
             "allow_force_pushes": False, "required_reviewers": 0,
             "enforce_admins": False, "required_status_checks": False,
+            "ci_workflow": ci_workflow,
             "_source": {"branch": branch, "live": True},
         }
     rpr = prot.get("required_pull_request_reviews") or {}
@@ -40,15 +45,43 @@ def normalize(prot, repo, branch, environment="prod"):
         "required_reviewers": int(rpr.get("required_approving_review_count", 0) or 0),
         "enforce_admins": bool((prot.get("enforce_admins") or {}).get("enabled", False)),
         "required_status_checks": bool(rsc.get("contexts") or rsc.get("checks")),
+        "ci_workflow": ci_workflow,
         "_source": {"branch": branch, "live": True},
     }
+
+
+def ci_workflow_present(body):
+    """True when the Actions API reports a version-controlled workflow."""
+    if not isinstance(body, dict):
+        return False
+    total = body.get("total_count")
+    if type(total) is int and total > 0:
+        return True
+    workflows = body.get("workflows")
+    return isinstance(workflows, list) and len(workflows) > 0
+
+
+def fetch_ci_workflow(repo):
+    proc = subprocess.run(
+        ["gh", "api", f"repos/{repo}/actions/workflows"],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        detail = (proc.stderr or "").strip() or "gh actions workflows failed"
+        raise SensorError(detail)
+    try:
+        parsed = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        detail = (proc.stderr or "").strip() or "gh actions workflows failed"
+        raise SensorError(detail) from exc
+    return ci_workflow_present(parsed)
 
 
 def collect(repo, environment="prod"):
     info = _gh(f"repos/{repo}") or {}
     branch = info.get("default_branch", "main")
     prot = _gh(f"repos/{repo}/branches/{branch}/protection")
-    return normalize(prot, repo, branch, environment)
+    return normalize(prot, repo, branch, environment, fetch_ci_workflow(repo))
 
 
 def filter_repos(repos, visibility="public"):
@@ -70,11 +103,12 @@ def list_repos(owner, visibility="public"):
         capture_output=True, text=True,
     )
     if proc.returncode != 0:
-        return []
+        detail = (proc.stderr or "").strip() or "gh repo list failed"
+        raise SensorError(detail)
     try:
         repos = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return []
+    except json.JSONDecodeError as exc:
+        raise SensorError(f"gh repo list returned invalid JSON: {exc}") from exc
     return filter_repos(repos, visibility)
 
 
@@ -104,7 +138,10 @@ def main():
     ap.add_argument("--out", default="sensors/out/github.json")
     args = ap.parse_args()
     if args.owner:
-        repos = list_repos(args.owner, args.visibility)
+        try:
+            repos = list_repos(args.owner, args.visibility)
+        except SensorError as e:
+            raise SystemExit(f"github sensor failed: {e}")
         if not repos:
             raise SystemExit(f"no {args.visibility} repos found for {args.owner}")
         payload = collect_org(args.owner, args.visibility)

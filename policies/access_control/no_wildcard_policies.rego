@@ -16,7 +16,7 @@ __rego_metadata__ := {
 
 deny contains msg if {
 	some pol in input.policies
-	contains_wildcard(pol.actions)
+	contains_wildcard_action(pol.actions)
 	msg := sprintf("CTRL-ACCESS-003: policy %q grants wildcard actions (Action: *)", [pol.name])
 }
 
@@ -26,7 +26,18 @@ deny contains msg if {
 	msg := sprintf("CTRL-ACCESS-003: policy %q grants wildcard resources (Resource: *)", [pol.name])
 }
 
-# A statement grants "*" if any entry is exactly the wildcard token.
+# AWS IAM treats "*" anywhere in an action as a wildcard: "*", "s3:*", "s3:Get*".
+# Resource ARNs such as arn:aws:s3:::data/* stay allowed. Only a resource of exactly "*" is denied.
+contains_wildcard_action(arr) if {
+	some entry in arr
+	wildcard_action(entry)
+}
+
+wildcard_action(entry) if {
+	is_string(entry)
+	contains(entry, "*")
+}
+
 contains_wildcard(arr) if {
 	some entry in arr
 	entry == "*"

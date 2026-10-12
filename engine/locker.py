@@ -20,6 +20,20 @@ def parse_validity(iso_duration):
     return timedelta(days=y * 365 + mo * 30 + w * 7 + d)
 
 
+def verdict_fingerprint(payload_bytes, verdict):
+    # Status and findings are stored on the record. Hashing only the payload
+    # would leave the Merkle head unchanged when the verdict changes.
+    stored = {
+        "status": verdict.get("status"),
+        "findings": verdict.get("findings", []),
+    }
+    verdict_bytes = json.dumps(
+        stored, sort_keys=True, separators=(",", ":"), default=str,
+    ).encode()
+    digest = hashlib.sha256(payload_bytes + b"\n" + verdict_bytes).hexdigest()
+    return "sha256:" + digest
+
+
 def build_record(control, verdict, payload_bytes, sensor):
     now = datetime.now(timezone.utc).replace(microsecond=0)
     valid_until = now + parse_validity(control.evidence_validity)
@@ -34,7 +48,7 @@ def build_record(control, verdict, payload_bytes, sensor):
         },
         "collected_at": now.isoformat().replace("+00:00", "Z"),
         "valid_until": valid_until.isoformat().replace("+00:00", "Z"),
-        "fingerprint": "sha256:" + hashlib.sha256(payload_bytes).hexdigest(),
+        "fingerprint": verdict_fingerprint(payload_bytes, verdict),
         "verdict_detail": {"findings": verdict.get("findings", [])},
     }
 
