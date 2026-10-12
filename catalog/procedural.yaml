@@ -2,9 +2,8 @@
 # SOC 2: CC1 (Control Environment), CC3 (Risk), CC7.3/CC7.4 (Incident Response), CC9.2 (Suppliers), P* (Privacy).
 # ISO 27001:2022: A.5.1/A.5.2 (governance), A.5.7 (threat intel), A.5.24-A.5.26 (incident), A.5.19/A.5.20 (suppliers), A.6.3 (awareness), A.5.29/A.5.30 (continuity), A.5.34 (privacy).
 #
-# These controls are NOT sensor-evaluated. Evidence is a signed manifest
-# (docs/readiness-layer-design.md §15) carrying an approval date and a
-# next_review_due; once overdue, the scorer flips the record to EXPIRED.
+# sensors/procedural.py scores these from next_review_due. It does not check
+# a signature and it does not open document_ref. A past due date is EXPIRED.
 
 - id: CTRL-GOV-001
   title: Information security policy approved and reviewed annually

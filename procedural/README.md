@@ -1,9 +1,10 @@
 # Procedural evidence (L2 — `procedural-evidence` sensor)
 
 Procedural controls (governance, risk, incident response, awareness, suppliers,
-privacy, continuity) can't be sensed from infrastructure. Their evidence is a
-**signed manifest** carrying an approval date and a `next_review_due` — the
-review cadence itself drives validity decay (design §15).
+privacy, continuity) are not read from infrastructure. Their evidence in this
+repository is a YAML manifest. `sensors/procedural.py` uses `control_id` and
+`next_review_due` only. It does not check a signature, and it does not open
+`document_ref`.
 
 ## How it's evaluated (`sensors/procedural.py`)
 

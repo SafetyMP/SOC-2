@@ -22,7 +22,7 @@ no rows is not a pass.
 | L1 Policy | `policies/` | The 7 Rego packages in `engine/jobs.yaml`, plus `lib.payload` (empty input is not a pass) |
 | L2 Sensors | `sensors/` | GitHub, Terraform, and procedural manifests. Cloud, Kubernetes, and SAST adapters are stubs and are not scored |
 | L3–L4 Engine | `engine/` | Evaluator + clean/effective scorer |
-| L5 Locker | `evidence/` + local MinIO | Dev locker + Merkle log; prod replica stubbed |
+| L5 Locker | `evidence/` + `docker-compose.yml` | Dev locker image is `pgsty/silo` (Docker Hub deleted `minio/minio`). Prod replica is stubbed |
 | L6 Waivers | `exceptions/` | Time-boxed policy-as-data. Waivers do not count as clean |
 | L7 IaC gate | `scripts/iac_gate.sh` | Warn-mode sample Terraform for encryption at rest only |
 
