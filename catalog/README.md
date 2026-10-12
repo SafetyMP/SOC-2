@@ -60,8 +60,8 @@ Each control is a YAML map:
 | `soc2`              | list                                    | Reference labels only. Not a SOC 2 exam scope.                                      |
 | `iso27001`          | list                                    | Reference labels only. Not an ISO/IEC 27001 certification scope.                   |
 | `criticality`       | int 1-3                                 | Weight used by the readiness scorer (L4)                                            |
-| `assertion_type`    | `technical` \| `procedural` \| `policy` | Technical = sensor-evaluated; procedural = document + date; policy = governance doc |
-| `evidence_validity` | ISO-8601 duration                       | `P30D` etc.; stale evidence → EXPIRED                                               |
+| `assertion_type`    | `technical` \| `procedural` \| `policy` | Stored and validated. The procedural sensor scores `next_review_due` only. It does not open a document. |
+| `evidence_validity` | ISO-8601 duration                       | Required on each control. The scorer does not read this duration. Procedural EXPIRED means `next_review_due` is in the past. |
 | `sensors`           | list                                    | Which L2 adapters produce evidence                                                  |
 | `rego_packages`     | list                                    | Which Rego packages evaluate this control (technical only)                          |
 | `guidance`          | string                                  | Implementation notes. Not an audit opinion.                                         |
