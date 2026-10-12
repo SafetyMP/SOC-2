@@ -88,3 +88,8 @@ docker compose up -d
 ## License
 
 [Apache License 2.0](LICENSE).
+
+
+## Documentation map
+
+[docs/README.md](docs/README.md) lists the repository layout. Community policy files are the root `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`.
