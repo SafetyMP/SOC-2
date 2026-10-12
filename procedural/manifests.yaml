@@ -3,8 +3,9 @@
 # These illustrate the procedural-evidence mechanism (design §15). They are
 # attestations, NOT real records — replace each with a genuine, approver-signed
 # attestation of the actual governance activity before relying on the resulting
-# readiness score. A control is PASS while next_review_due is in the future and
-# EXPIRED once it passes (the review cadence itself drives validity decay).
+# readiness score. A control is PASS only when document_ref is a non-empty file
+# in this repo and next_review_due is still in the future. A date alone is not
+# evidence. EXPIRED applies once that file's review date has passed.
 
 - control_id: CTRL-GOV-001
   document_ref: governance/policies/infosec-policy.md

@@ -35,13 +35,19 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
         owner = github_sensor.origin_repo().split("/")[0]
         live_paths["github"] = os.path.join(_REPO_ROOT, "sensors/out/github.json")
         if org:
-            repos = github_sensor.list_repos(owner, "public")
-            github_sensor.write_payload(repos, live_paths["github"])
+            try:
+                repos = github_sensor.list_repos(owner, "public")
+                github_sensor.write_payload(repos, live_paths["github"])
+            except github_sensor.SensorError as e:
+                raise SystemExit(f"live github sensor failed: {e}")
             print(f"# live sensor: github org-wide -> {live_paths['github']} "
                   f"({len(repos)} public repos, {owner})")
         else:
             repo = github_sensor.origin_repo()
-            github_sensor.write_payload([repo], live_paths["github"])
+            try:
+                github_sensor.write_payload([repo], live_paths["github"])
+            except github_sensor.SensorError as e:
+                raise SystemExit(f"live github sensor failed: {e}")
             print(f"# live sensor: github -> {live_paths['github']} ({repo})")
 
     verdicts = {}
@@ -179,7 +185,12 @@ def _parse_as_of(value):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Run the readiness evaluation loop")
+    ap = argparse.ArgumentParser(
+        description=(
+            "Score only the controls wired in engine/jobs.yaml. "
+            "Empty evidence is MISSING, not PASS. Not a certification."
+        )
+    )
     ap.add_argument("--catalog", default="catalog")
     ap.add_argument("--policies", default="policies")
     ap.add_argument("--jobs", default="engine/jobs.yaml")

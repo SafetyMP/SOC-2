@@ -43,6 +43,15 @@ deny contains msg if {
 	msg := sprintf("CTRL-CHG-002: production repo %q requires >= 2 reviewers (has %v)", [r.name, r.required_reviewers])
 }
 
+# CTRL-CHG-002 / SOC 2 CC8.1: a production merge also has to pass required status checks.
+# A missing flag is not evidence that checks are required.
+deny contains msg if {
+	some r in input.repositories
+	is_prod(r)
+	object.get(r, "required_status_checks", false) != true
+	msg := sprintf("CTRL-CHG-002: production repo %q has no required status checks", [r.name])
+}
+
 # Non-prod still requires at least one review (no unreviewed merges).
 deny contains msg if {
 	some r in input.repositories

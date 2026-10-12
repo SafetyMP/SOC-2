@@ -71,10 +71,10 @@ Each control is a YAML map:
 | File                      | Wired IDs in this scorer                                      |
 | ------------------------- | ------------------------------------------------------------- |
 | `access-control.yaml`     | CTRL-ACCESS-001, CTRL-ACCESS-003                              |
-| `encryption.yaml`         | CTRL-ENC-001                                                  |
+| `encryption.yaml`         | CTRL-ENC-001, CTRL-ENC-003                                    |
 | `logging.yaml`            | CTRL-LOG-001                                                  |
 | `network.yaml`            | CTRL-NET-008                                                  |
-| `change-mgmt.yaml`        | CTRL-CHG-001, CTRL-CHG-002                                    |
+| `change-mgmt.yaml`        | CTRL-CHG-001, CTRL-CHG-002, CTRL-CHG-005, CTRL-CHG-008        |
 | `backup.yaml`             | CTRL-BKP-001                                                  |
 | `procedural.yaml`         | The nine manifest controls listed above                       |
 | `vulnerability-mgmt.yaml` | None. Entries in this file are not scored.                    |

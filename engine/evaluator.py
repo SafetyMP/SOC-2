@@ -8,7 +8,6 @@ from engine.scorer import PASS, FAIL, MISSING
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CTRL_RE = re.compile(r"^(CTRL-[A-Z]+-\d+):")
 
-
 def _rel(path):
     return os.path.relpath(os.path.abspath(path), _REPO_ROOT)
 

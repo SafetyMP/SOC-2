@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "soc2-wired-score"
+version = "0.1.0"
+description = "Score only the wired SOC 2 controls. Empty evidence is MISSING, not a pass. Not a certification."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["PyYAML==6.0.3"]
+
+[project.scripts]
+soc2-score = "engine.run:main"
+
+[tool.setuptools.packages.find]
+include = ["engine*", "sensors*", "evidence*"]
+exclude = ["tests*"]

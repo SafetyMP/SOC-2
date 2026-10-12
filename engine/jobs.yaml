@@ -5,6 +5,8 @@ jobs:
     package: access_control.no_wildcard_policies
   - payload: fixtures/encryption/data_resources.json
     package: encryption.at_rest_required
+  - payload: fixtures/encryption/data_resources.json
+    package: encryption.cmk_required_for_prod
   - payload: fixtures/network/endpoints.json
     package: network.tls_12_required
   - payload: fixtures/logging/audit_logs.json
@@ -12,5 +14,10 @@ jobs:
   - payload: fixtures/change/repos.json
     package: change_mgmt.branch_protection_enforced
     sensor: github
+  - payload: fixtures/change/repos.json
+    package: change_mgmt.ci_required
+    sensor: github
+  - payload: fixtures/change/plans.json
+    package: change_mgmt.iac_policy_gate
   - payload: fixtures/backup/datastores.json
     package: backup.automated_backup_enabled

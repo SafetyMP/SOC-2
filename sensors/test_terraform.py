@@ -15,7 +15,8 @@ def test_unencrypted_rds_is_flagged():
                    "values": {"storage_encrypted": False}}])
     out = normalize_plan(plan)
     assert out["data_resources"] == [{"id": "aws_db_instance.db", "type": "rds",
-                                       "environment": "prod", "encrypted": False}]
+                                       "environment": "prod", "encrypted": False,
+                                       "customer_managed_key": False}]
 
 
 def test_encrypted_ebs_is_compliant():
@@ -40,9 +41,64 @@ def test_s3_encrypted_via_separate_sse_resource():
     assert dr["aws_s3_bucket.logs"]["encrypted"] is True
 
 
+def test_rds_kms_key_is_customer_managed():
+    plan = _plan([{"type": "aws_db_instance", "address": "aws_db_instance.db",
+                   "values": {"storage_encrypted": True, "kms_key_id": "arn:aws:kms:us-east-1:1:key/abc"}}])
+    row = normalize_plan(plan)["data_resources"][0]
+    assert row["encrypted"] is True
+    assert row["customer_managed_key"] is True
+
+
+def test_s3_sse_with_master_key_is_customer_managed():
+    plan = _plan([
+        {"type": "aws_s3_bucket", "address": "aws_s3_bucket.logs", "values": {}},
+        {"type": "aws_s3_bucket_server_side_encryption_configuration",
+         "address": "aws_s3_bucket_server_side_encryption_configuration.logs",
+         "values": {"bucket": "aws_s3_bucket.logs.id",
+                    "rule": [{"apply_server_side_encryption_by_default": [
+                        {"sse_algorithm": "aws:kms", "kms_master_key_id": "arn:aws:kms:us-east-1:1:key/abc"}]}]}},
+    ])
+    row = {d["id"]: d for d in normalize_plan(plan)["data_resources"]}["aws_s3_bucket.logs"]
+    assert row["encrypted"] is True
+    assert row["customer_managed_key"] is True
+
+
 def test_s3_without_sse_is_unencrypted():
     plan = _plan([{"type": "aws_s3_bucket", "address": "aws_s3_bucket.public", "values": {}}])
     assert normalize_plan(plan)["data_resources"][0]["encrypted"] is False
+
+
+def test_no_resource_changes_plan_is_non_mutating_unapproved_prod():
+    plan = _plan([{"type": "aws_db_instance", "address": "aws_db_instance.db",
+                   "values": {"storage_encrypted": False}}])
+    out = normalize_plan(plan)
+    assert out["data_resources"] == [{"id": "aws_db_instance.db", "type": "rds",
+                                       "environment": "prod", "encrypted": False,
+                                       "customer_managed_key": False}]
+    assert out["plans"][0]["id"] == "terraform"
+    assert out["plans"][0]["mutating"] is False
+    assert out["plans"][0]["approved"] is False
+    assert out["plans"][0]["environment"] == "prod"
+
+
+def test_update_action_is_mutating():
+    plan = {"resource_changes": [{"change": {"actions": ["update"]}}]}
+    assert normalize_plan(plan)["plans"][0]["mutating"] is True
+
+
+def test_noop_action_is_not_mutating():
+    plan = {"resource_changes": [{"change": {"actions": ["no-op"]}}]}
+    assert normalize_plan(plan)["plans"][0]["mutating"] is False
+
+
+def test_change_approved_true():
+    plan = {"variables": {"change_approved": {"value": True}}}
+    assert normalize_plan(plan)["plans"][0]["approved"] is True
+
+
+def test_environment_nonprod():
+    plan = {"variables": {"environment": {"value": "nonprod"}}}
+    assert normalize_plan(plan)["plans"][0]["environment"] == "nonprod"
 
 
 def test_walks_child_modules():

@@ -25,6 +25,7 @@ sensors/out/
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
 
 # Terraform (local state + provider caches)
 .terraform/
