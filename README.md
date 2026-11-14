@@ -18,7 +18,7 @@ controls are not evaluated and never count as passing.
 - **Action queue:** inspect the affected resource, evidence source, and next step.
 - **Control library:** search and filter all 37 controls, including the unevaluated scope.
 - **Evidence:** inspect collection dates, validity, fingerprints, and original verdicts.
-- **Local review:** save an owner and next action in your browser, then export a review.
+- **Local review:** save an owner and next action in your browser; export and reopen reviews to resume work.
 
 The hosted demo uses synthetic fixtures. Generate a fresh fixture snapshot from
 your checkout and import it without uploading its contents:

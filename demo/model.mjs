@@ -1,5 +1,6 @@
 export const STATUSES = ['PASS', 'FAIL', 'MISSING', 'EXPIRED', 'EXCEPTION', 'UNWIRED'];
 export const ATTENTION = ['FAIL', 'MISSING', 'EXPIRED'];
+export const REVIEW_PROGRESS = ['Not started', 'In progress', 'Ready for recheck'];
 export const LABELS = {PASS:'Passing', FAIL:'Needs attention', MISSING:'Missing evidence', EXPIRED:'Expired evidence', EXCEPTION:'Accepted exception', UNWIRED:'Not evaluated'};
 export const DOMAINS = {access_control:'Access control',access:'Access control',encryption:'Encryption',network:'Network security',logging:'Audit logging',change_mgmt:'Change management',backup:'Backup & recovery',procedural:'Governance',governance:'Governance',vulnerability_mgmt:'Vulnerability management'};
 export function domainLabel(domain) { return DOMAINS[domain] || domain.replaceAll('_',' ').replaceAll('-',' ').replace(/^./, c=>c.toUpperCase()); }
@@ -27,10 +28,43 @@ export function validateReport(input) {
   // Recompute from measured verdicts; never trust supplied percentages.
   return {...input, summary:summarize(input.controls)};
 }
+function plainRecord(value) {
+  return value!==null && typeof value==='object' && !Array.isArray(value) &&
+    [Object.prototype,null].includes(Object.getPrototypeOf(value));
+}
+export function reviewProgress(note) {
+  return plainRecord(note) && Object.hasOwn(note,'progress') && REVIEW_PROGRESS.includes(note.progress)?note.progress:'Not started';
+}
+export function parseWorkspaceImport(input) {
+  if(!plainRecord(input)) throw new Error('Choose a fixture report or an exported workspace review.');
+  if(!Object.hasOwn(input,'format')) return {report:validateReport(input),notes:null};
+  if(input.format!=='soc2-workspace-review-v1') throw new Error('This workspace review format is not supported.');
+  const report=validateReport(input.report);
+  return {report,notes:validateReviewNotes(input.review_notes,report)};
+}
+export function validateReviewNotes(input,report) {
+  if(!plainRecord(input)) throw new Error('The review notes must be a control ID map. No data was imported.');
+  const ids=new Set(report.controls.map(c=>c.id)), notes=Object.create(null);
+  for(const [id,note] of Object.entries(input)) {
+    if(!ids.has(id)) throw new Error('A review note refers to a control outside this report. No data was imported.');
+    if(!plainRecord(note) || !Object.hasOwn(note,'owner') || !text(note.owner,100) ||
+       !Object.hasOwn(note,'note') || !text(note.note,3000) ||
+       !Object.hasOwn(note,'progress') || !REVIEW_PROGRESS.includes(note.progress) ||
+       ['__proto__','prototype','constructor'].some(key=>Object.hasOwn(note,key)) ||
+       (Object.hasOwn(note,'updated_at') && (!text(note.updated_at,100) || !Number.isFinite(Date.parse(note.updated_at))))) {
+      throw new Error('The review contains invalid notes. No data was imported.');
+    }
+    // Copy planning fields only. Imported verdict-like fields cannot enter notes
+    // or overwrite the separately validated report, and no input object is mutated.
+    notes[id]={owner:note.owner,note:note.note,progress:note.progress};
+    if(Object.hasOwn(note,'updated_at')) notes[id].updated_at=note.updated_at;
+  }
+  return notes;
+}
 export function filtersForPage(filters,page) { return {...filters,status:page==='attention' && !ATTENTION.includes(filters.status)?'all':filters.status}; }
-export function filterControls(controls,{query='',status='all',domain='all',attention=false}={}) {
+export function filterControls(controls,{query='',status='all',domain='all',attention=false,progress='all',notes={}}={}) {
   const q=query.trim().toLowerCase();
-  return controls.filter(c=>(!attention || ATTENTION.includes(c.status)) && (status==='all'||c.status===status) && (domain==='all'||c.domain===domain) && (!q || [c.id,c.title,domainLabel(c.domain),...c.soc2,...c.iso27001,...c.findings].join(' ').toLowerCase().includes(q)));
+  return controls.filter(c=>(!attention || ATTENTION.includes(c.status)) && (status==='all'||c.status===status) && (domain==='all'||c.domain===domain) && (progress==='all'||reviewProgress(notes?.[c.id])===progress) && (!q || [c.id,c.title,domainLabel(c.domain),...c.soc2,...c.iso27001,...c.findings].join(' ').toLowerCase().includes(q)));
 }
 export function prioritySort(controls) { const order={FAIL:0,MISSING:1,EXPIRED:2,EXCEPTION:3,PASS:4,UNWIRED:5}; return [...controls].sort((a,b)=>order[a.status]-order[b.status]||b.criticality-a.criticality||a.id.localeCompare(b.id)); }
 export function sourceURL(commit,path) { return /^[a-f0-9]{40}$/.test(commit) && typeof path==='string' && /^[a-zA-Z0-9_./-]+$/.test(path) && !path.split('/').includes('..') && !path.startsWith('/') ? `https://github.com/SafetyMP/SOC-2/blob/${commit}/${path}` : null; }
