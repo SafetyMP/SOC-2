@@ -32,6 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/test_export_workspace.py
+          python3 scripts/test_assess_github.py
+          python3 scripts/test_serve_workspace.py
           node --check demo/app.js
           node --test demo/*.test.mjs
       - name: Check the static release payload
@@ -50,8 +52,7 @@ jobs:
           PY
 
   deploy:
-    # PRs only verify. Enable GitHub Pages source = GitHub Actions before using
-    # this job; an initial gh-pages branch publication can be retained until then.
+    # PRs only verify. Publish the sample workspace from main.
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: verify-demo
     runs-on: ubuntu-latest
@@ -68,9 +69,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Stage only public workspace assets
+        run: |
+          mkdir -p public-workspace/data
+          cp demo/index.html demo/styles.css demo/app.js demo/model.mjs demo/favicon.svg public-workspace/
+          cp demo/data/sample-report.json public-workspace/data/
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
-          path: demo
+          path: public-workspace
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
