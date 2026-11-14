@@ -1,0 +1,1185 @@
+{
+  "schema_version": 1,
+  "mode": "fixture",
+  "title": "Reference environment",
+  "generated_at": "2026-11-14T21:03:50Z",
+  "as_of": "2026-11-14T21:03:50Z",
+  "source_commit": "5c5f477abe32c9d0889acd59b05e1bcee23f4f4c",
+  "summary": {
+    "catalog_count": 37,
+    "wired_count": 20,
+    "unwired_count": 17,
+    "counts": {
+      "FAIL": 2,
+      "UNWIRED": 17,
+      "PASS": 9,
+      "MISSING": 9
+    },
+    "clean_ratio": 0.46,
+    "effective_ratio": 0.46,
+    "ready_weight": 23,
+    "clean_weight": 23,
+    "effective_weight": 23,
+    "total_weight": 50
+  },
+  "domains": {
+    "access-control": {
+      "clean_ratio": 0.0,
+      "effective_ratio": 0.0,
+      "ready_weight": 0,
+      "total_weight": 6,
+      "counts": {
+        "FAIL": 2
+      }
+    },
+    "encryption": {
+      "clean_ratio": 1.0,
+      "effective_ratio": 1.0,
+      "ready_weight": 5,
+      "total_weight": 5,
+      "counts": {
+        "PASS": 2
+      }
+    },
+    "network": {
+      "clean_ratio": 1.0,
+      "effective_ratio": 1.0,
+      "ready_weight": 2,
+      "total_weight": 2,
+      "counts": {
+        "PASS": 1
+      }
+    },
+    "logging": {
+      "clean_ratio": 1.0,
+      "effective_ratio": 1.0,
+      "ready_weight": 3,
+      "total_weight": 3,
+      "counts": {
+        "PASS": 1
+      }
+    },
+    "change-management": {
+      "clean_ratio": 1.0,
+      "effective_ratio": 1.0,
+      "ready_weight": 10,
+      "total_weight": 10,
+      "counts": {
+        "PASS": 4
+      }
+    },
+    "backup-availability": {
+      "clean_ratio": 1.0,
+      "effective_ratio": 1.0,
+      "ready_weight": 3,
+      "total_weight": 3,
+      "counts": {
+        "PASS": 1
+      }
+    },
+    "procedural": {
+      "clean_ratio": 0.0,
+      "effective_ratio": 0.0,
+      "ready_weight": 0,
+      "total_weight": 21,
+      "counts": {
+        "MISSING": 9
+      }
+    }
+  },
+  "controls": [
+    {
+      "id": "CTRL-ACCESS-001",
+      "title": "Enforce MFA on all human and privileged identities",
+      "domain": "access-control",
+      "status": "FAIL",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC6.1",
+        "CC6.6"
+      ],
+      "iso27001": [
+        "A.8.2",
+        "A.8.5",
+        "A.5.17"
+      ],
+      "guidance": "Every human IAM principal and every principal holding a privileged policy\nmust have MFA active (hardware or TOTP). Programmatic access keys for humans\nare out of scope here \u2014 see CTRL-ACCESS-007.",
+      "owner": null,
+      "source": {
+        "sensor": "access_control",
+        "query": "opa eval data.access_control.iam_mfa_enforced.deny",
+        "payload": "fixtures/access/principals.json"
+      },
+      "findings": [
+        "CTRL-ACCESS-001: human identity \"bob@example.com\" lacks MFA"
+      ],
+      "valid_until": "2026-12-14T21:03:50Z",
+      "collected_at": "2026-11-14T21:03:50Z",
+      "fingerprint": "sha256:ce00616993e3ad87acd2ff2238097dcd843aaba14c3cc28362a574ae6bf7f928",
+      "evidence_id": "ev_62784104264e41b09e7c8ff6",
+      "evidence_status": "FAIL",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-ACCESS-003",
+      "title": "No identity/role may hold wildcard (\"*\") permissions",
+      "domain": "access-control",
+      "status": "FAIL",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC6.3"
+      ],
+      "iso27001": [
+        "A.8.2",
+        "A.8.3"
+      ],
+      "guidance": "Deny managed/inline policies granting `Action: *` or `Resource: *`. Use\nscoped, least-privilege policies; break-glass roles are tracked under\nCTRL-ACCESS-009 (privileged utility programs, A.8.18) with compensating\nmonitoring.",
+      "owner": null,
+      "source": {
+        "sensor": "access_control",
+        "query": "opa eval data.access_control.no_wildcard_policies.deny",
+        "payload": "fixtures/access/policies.json"
+      },
+      "findings": [
+        "CTRL-ACCESS-003: policy \"AdminWildcard\" grants wildcard actions (Action: *)",
+        "CTRL-ACCESS-003: policy \"AdminWildcard\" grants wildcard resources (Resource: *)"
+      ],
+      "valid_until": "2026-12-14T21:03:50Z",
+      "collected_at": "2026-11-14T21:03:50Z",
+      "fingerprint": "sha256:656ffa4b1cf18df37f8675a61287cfd837bb8adc6d2e17c10278e2fe1d946b93",
+      "evidence_id": "ev_fcf094331b5547839d8bfc36",
+      "evidence_status": "FAIL",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-ACCESS-007",
+      "title": "No static long-term access keys for human identities (SSO/federation only)",
+      "domain": "access-control",
+      "status": "UNWIRED",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC6.1",
+        "CC6.2"
+      ],
+      "iso27001": [
+        "A.8.2",
+        "A.8.4",
+        "A.5.16"
+      ],
+      "guidance": "Human access to all three clouds is via federated SSO (e.g. IAM Identity\nCenter / Entra ID / Cloud Identity). Long-lived access keys are permitted\nonly for non-human service accounts and must rotate (see CTRL-ACCESS-011).",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-ACCESS-011",
+      "title": "Non-human credentials rotate within their maximum age",
+      "domain": "access-control",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC6.1"
+      ],
+      "iso27001": [
+        "A.8.2",
+        "A.5.17"
+      ],
+      "guidance": "Service-account keys / tokens older than the policy max age (default 90d)\nare flagged. Prefer workload identity / short-lived credentials over keys.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-ACCESS-019",
+      "title": "Source-code repositories restrict access and require identity-based access",
+      "domain": "access-control",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC6.1",
+        "CC6.3"
+      ],
+      "iso27001": [
+        "A.8.4",
+        "A.5.15"
+      ],
+      "guidance": "Production repositories are not world-writable; access is granted to named\nidentities/teams. Public repos are allowed only by explicit exception.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-AVAIL-001",
+      "title": "Production workloads deployed across multiple availability zones",
+      "domain": "backup-availability",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "A1.1",
+        "A1.3"
+      ],
+      "iso27001": [
+        "A.8.14",
+        "A.8.6"
+      ],
+      "guidance": "Stateful and tier-1 production services span >= 2 availability zones\n(multi-AZ/multi-region per the service's availability target).",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-BKP-001",
+      "title": "Automated backups enabled on all production data stores",
+      "domain": "backup-availability",
+      "status": "PASS",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "A1.2"
+      ],
+      "iso27001": [
+        "A.8.13"
+      ],
+      "guidance": "Managed databases, object stores (versioning), and persistent volumes in\nproduction have automated backups enabled with point-in-time recovery where\nsupported.",
+      "owner": null,
+      "source": {
+        "sensor": "backup",
+        "query": "opa eval data.backup.automated_backup_enabled.deny",
+        "payload": "fixtures/backup/datastores.json"
+      },
+      "findings": [],
+      "valid_until": "2026-12-14T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:04926af2064bebd829bebd08dfa71a97cf1000d7c394c8f0a2aaa8252aa2bb89",
+      "evidence_id": "ev_de43da8bd77047a3bf4eb393",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-BKP-003",
+      "title": "Backups are encrypted and stored separately from primary",
+      "domain": "backup-availability",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "A1.2",
+        "C1.1"
+      ],
+      "iso27001": [
+        "A.8.13",
+        "A.8.24"
+      ],
+      "guidance": "Backup destinations are encrypted at rest and in a different\naccount/region/container than the primary to survive ransomware/loss.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-BKP-006",
+      "title": "Backup restore tested on a defined cadence",
+      "domain": "backup-availability",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "procedural",
+      "soc2": [
+        "A1.2",
+        "A1.3"
+      ],
+      "iso27001": [
+        "A.8.13",
+        "A.5.30"
+      ],
+      "guidance": "A restore-from-backup test is performed and recorded at least semi-annually.\nEvidence is a signed manifest (see \u00a715) with the test date and result.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-CHG-001",
+      "title": "Production branches are protected; no direct push",
+      "domain": "change-management",
+      "status": "PASS",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC8.1"
+      ],
+      "iso27001": [
+        "A.8.32"
+      ],
+      "guidance": "main/release branches enforce branch protection: no direct commits, changes\nvia PR only. Force-pushes are disabled.",
+      "owner": null,
+      "source": {
+        "sensor": "github",
+        "query": "opa eval data.change_mgmt.branch_protection_enforced.deny",
+        "payload": "fixtures/change/repos.json"
+      },
+      "findings": [],
+      "valid_until": "2026-12-14T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:ce4bf66fd62d873241072d84bc7b2c393281f2ddbd2d484e3a42c285730972ad",
+      "evidence_id": "ev_78cd8595972d4b01b2fff2a4",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-CHG-002",
+      "title": "Production changes require at least two approver reviews",
+      "domain": "change-management",
+      "status": "PASS",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC8.1",
+        "CC5.2"
+      ],
+      "iso27001": [
+        "A.8.32"
+      ],
+      "guidance": "PRs to production repos require >= 2 approving reviews and pass required\nstatus checks (CI, security gates) before merge. Enforced by the\nbranch_protection_enforced policy (required_reviewers and\nrequired_status_checks).",
+      "owner": null,
+      "source": {
+        "sensor": "github",
+        "query": "opa eval data.change_mgmt.branch_protection_enforced.deny",
+        "payload": "fixtures/change/repos.json"
+      },
+      "findings": [],
+      "valid_until": "2026-12-14T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:ce4bf66fd62d873241072d84bc7b2c393281f2ddbd2d484e3a42c285730972ad",
+      "evidence_id": "ev_26defbe2aef1489ea14fd858",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-CHG-005",
+      "title": "Infrastructure changes are gated by policy before apply",
+      "domain": "change-management",
+      "status": "PASS",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC8.1"
+      ],
+      "iso27001": [
+        "A.8.32",
+        "A.8.25"
+      ],
+      "guidance": "`terraform apply` is preceded by a conftest policy evaluation over the plan.\nIn enforce mode, policy `deny` blocks the apply (see rollout \u00a712 burn-in).",
+      "owner": null,
+      "source": {
+        "sensor": "change_mgmt",
+        "query": "opa eval data.change_mgmt.iac_policy_gate.deny",
+        "payload": "fixtures/change/plans.json"
+      },
+      "findings": [],
+      "valid_until": "2026-12-14T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:6d5b675c5151c07ef39dbf7202f9afcb32a29091281a06643645146e6eca2179",
+      "evidence_id": "ev_9b8db54490d74f3098a34154",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-CHG-008",
+      "title": "All deployments are reproducible from version-controlled pipelines",
+      "domain": "change-management",
+      "status": "PASS",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC8.1"
+      ],
+      "iso27001": [
+        "A.8.32",
+        "A.8.19"
+      ],
+      "guidance": "Production deploys originate only from CI; no out-of-band/manual deploys.\nPipelines are defined in-repo and version-controlled.",
+      "owner": null,
+      "source": {
+        "sensor": "github",
+        "query": "opa eval data.change_mgmt.ci_required.deny",
+        "payload": "fixtures/change/repos.json"
+      },
+      "findings": [],
+      "valid_until": "2027-02-12T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:ce4bf66fd62d873241072d84bc7b2c393281f2ddbd2d484e3a42c285730972ad",
+      "evidence_id": "ev_2652cc2ff9dd4891b2b163dd",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-CONT-001",
+      "title": "Business continuity / ICT readiness plan maintained and reviewed",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 2,
+      "kind": "procedural",
+      "soc2": [
+        "A1.2",
+        "A1.3"
+      ],
+      "iso27001": [
+        "A.5.29",
+        "A.5.30"
+      ],
+      "guidance": "Continuity/ICT-readiness plan exists, with recovery objectives, reviewed annually.",
+      "owner": "security-lead",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/continuity-plan.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:bdae260738f36a9e9be55197d38b85ed77ad213fe312cb1ab9d22fd339770bd9",
+      "evidence_id": "ev_d86d1dd2825043618c87bd64",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-DATA-001",
+      "title": "Data retention and deletion lifecycle enforced on object stores",
+      "domain": "encryption",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "C1.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "iso27001": [
+        "A.8.10",
+        "A.5.34"
+      ],
+      "guidance": "Buckets holding customer/PII data have lifecycle rules (retention +\ndeletion) matching the data-retention policy. Supports Privacy P5 and\nISO A.8.10 (information deletion).",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-ENC-001",
+      "title": "Encryption at rest enabled on all data stores and volumes",
+      "domain": "encryption",
+      "status": "PASS",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC6.1",
+        "C1.1"
+      ],
+      "iso27001": [
+        "A.8.24"
+      ],
+      "guidance": "S3/Object Storage/Google Cloud Storage buckets, EBS/disk volumes, managed\ndatabases, and message queues must have at-rest encryption enabled.\nCustomer-managed keys (CMK) are preferred for production data.",
+      "owner": null,
+      "source": {
+        "sensor": "encryption",
+        "query": "opa eval data.encryption.at_rest_required.deny",
+        "payload": "fixtures/encryption/data_resources.json"
+      },
+      "findings": [],
+      "valid_until": "2026-12-14T21:03:50Z",
+      "collected_at": "2026-11-14T21:03:50Z",
+      "fingerprint": "sha256:41292070fb703fa59e14813303c53285104bcd61ef19c1e50d6430b6bdb0b008",
+      "evidence_id": "ev_08fd71115be54493b6b0edc6",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-ENC-003",
+      "title": "Customer-managed keys (CMK) required for production data stores",
+      "domain": "encryption",
+      "status": "PASS",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC6.1",
+        "C1.1"
+      ],
+      "iso27001": [
+        "A.8.24"
+      ],
+      "guidance": "Production-classified data stores use customer-managed keys with defined\nrotation, not provider-default managed keys. Non-prod may use defaults.",
+      "owner": null,
+      "source": {
+        "sensor": "encryption",
+        "query": "opa eval data.encryption.cmk_required_for_prod.deny",
+        "payload": "fixtures/encryption/data_resources.json"
+      },
+      "findings": [],
+      "valid_until": "2027-02-12T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:41292070fb703fa59e14813303c53285104bcd61ef19c1e50d6430b6bdb0b008",
+      "evidence_id": "ev_89ae05f889e04c259be64f00",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-ENC-010",
+      "title": "Secrets and credentials are never stored unencrypted in code or config",
+      "domain": "encryption",
+      "status": "UNWIRED",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC6.1",
+        "C1.1"
+      ],
+      "iso27001": [
+        "A.8.24",
+        "A.8.12"
+      ],
+      "guidance": "Pre-receive / PR secret scanning (gitleaks/trufflehog) blocks any merge\ncontaining detected credentials. Hits must be rotated even if blocked.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-GOV-001",
+      "title": "Information security policy approved and reviewed annually",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 3,
+      "kind": "policy",
+      "soc2": [
+        "CC1.1",
+        "CC1.3",
+        "CC1.5"
+      ],
+      "iso27001": [
+        "A.5.1",
+        "A.5.2"
+      ],
+      "guidance": "A management-approved ISMS/security policy exists and is reviewed at least annually.",
+      "owner": "security-lead",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/policies/infosec-policy.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:1adbcfc452638e275d99791c14bf7145653ad2bc60714d27d37661a11888ea9f",
+      "evidence_id": "ev_22bc775280a641369684451c",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-GOV-002",
+      "title": "Information security roles and responsibilities defined and assigned",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 2,
+      "kind": "policy",
+      "soc2": [
+        "CC1.3",
+        "CC1.5"
+      ],
+      "iso27001": [
+        "A.5.2"
+      ],
+      "guidance": "RACI for security responsibilities is documented and current.",
+      "owner": "security-lead",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/raci.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:ba1e94dbc17531bec7db5e4e97a1c6bd942773cd98805a26777e44a4b30deca8",
+      "evidence_id": "ev_05d09b6d7b9c4bcc98fa0b40",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-IR-001",
+      "title": "Incident response plan maintained and tested via tabletop exercise",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 3,
+      "kind": "procedural",
+      "soc2": [
+        "CC7.3",
+        "CC7.4",
+        "CC7.5"
+      ],
+      "iso27001": [
+        "A.5.24",
+        "A.5.25",
+        "A.5.26"
+      ],
+      "guidance": "An IR plan exists; a tabletop or drill is run and documented at least semi-annually, with lessons recorded.",
+      "owner": "ir-lead",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/incident-response.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:b869a68a32d963639183d5d04e8d143ee010e783241602e1423cce01884655d3",
+      "evidence_id": "ev_b9824707a0854316b1503016",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-LOG-001",
+      "title": "Management-plane audit logging enabled in all regions/accounts",
+      "domain": "logging",
+      "status": "PASS",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC7.2",
+        "CC7.3"
+      ],
+      "iso27001": [
+        "A.8.15"
+      ],
+      "guidance": "CloudTrail (AWS, all regions + mgmt events), Activity Log (Azure, all\nsubscriptions), and Cloud Audit Logs (GCP) are enabled org-wide. Logs are\ndelivered to a centralized, access-restricted sink.",
+      "owner": null,
+      "source": {
+        "sensor": "logging",
+        "query": "opa eval data.logging.audit_log_enabled.deny",
+        "payload": "fixtures/logging/audit_logs.json"
+      },
+      "findings": [],
+      "valid_until": "2026-12-14T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:7a9177a7ac0f552820c6a7305036a1e0c4f9798e5ad0f960f993384bdccbddbf",
+      "evidence_id": "ev_f3b01fc5e20b46a0810d0179",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-LOG-003",
+      "title": "Audit logs are immutable / write-once for their retention period",
+      "domain": "logging",
+      "status": "UNWIRED",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC7.2"
+      ],
+      "iso27001": [
+        "A.8.15"
+      ],
+      "guidance": "Log buckets/containers have object-lock or immutable retention configured\nso logs cannot be altered or deleted within the retention window.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-LOG-006",
+      "title": "Alerts configured for high-signal security events (root/privileged use)",
+      "domain": "logging",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC7.2"
+      ],
+      "iso27001": [
+        "A.8.16"
+      ],
+      "guidance": "Root-account / break-glass usage and privileged API calls raise an alert to\nthe security channel within minutes.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-LOG-009",
+      "title": "System clocks are synchronised to a trusted time source",
+      "domain": "logging",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC7.2"
+      ],
+      "iso27001": [
+        "A.8.17"
+      ],
+      "guidance": "Compute and k8s nodes enforce NTP/chrony synchronisation so log timestamps\nare correlatable across the estate.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-NET-001",
+      "title": "No data-tier resource may be publicly reachable",
+      "domain": "network",
+      "status": "UNWIRED",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC6.6"
+      ],
+      "iso27001": [
+        "A.8.20",
+        "A.8.22"
+      ],
+      "guidance": "Databases, object stores holding non-public data, and internal services are\nnot exposed to the public internet. Storage public-access blocks are on.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-NET-004",
+      "title": "Production network access is restricted and segmented",
+      "domain": "network",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC6.6"
+      ],
+      "iso27001": [
+        "A.8.20",
+        "A.8.22",
+        "A.8.21"
+      ],
+      "guidance": "Production runs in dedicated VPCs/VNets with segmentation between tiers\n(e.g. private subnets for data, security groups denying wide ingress).",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-NET-008",
+      "title": "TLS 1.2+ enforced on all public endpoints and load balancers",
+      "domain": "network",
+      "status": "PASS",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC6.7",
+        "C1.2"
+      ],
+      "iso27001": [
+        "A.8.24",
+        "A.8.22"
+      ],
+      "guidance": "Load balancers, API gateways, and CDN fronts negotiate TLS 1.2 minimum;\nlegacy protocols (SSLv3, TLS 1.0/1.1) are disabled.",
+      "owner": null,
+      "source": {
+        "sensor": "network",
+        "query": "opa eval data.network.tls_12_required.deny",
+        "payload": "fixtures/network/endpoints.json"
+      },
+      "findings": [],
+      "valid_until": "2027-02-12T21:03:51Z",
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:786795f992048345e62a2582a5ef17fea5b105621e477e4a79fa7ce5575b03d8",
+      "evidence_id": "ev_fa16042f479247c9b4ac1e68",
+      "evidence_status": "PASS",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-PEOPLE-001",
+      "title": "Security awareness training completed on hire and annually",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 2,
+      "kind": "procedural",
+      "soc2": [
+        "CC1.4",
+        "CC2.2"
+      ],
+      "iso27001": [
+        "A.6.3"
+      ],
+      "guidance": "All personnel complete security/privacy awareness training at onboarding and at least annually thereafter.",
+      "owner": "people-ops",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/awareness-training.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:3e8b8a52df001c8ea79294dffe57c2538b4a20da50afb2ed2a0ffd1cdb32d240",
+      "evidence_id": "ev_b46244a026ff4e9198b401f5",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-PI-001",
+      "title": "Processing integrity controls defined for data-processing pipelines",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 2,
+      "kind": "procedural",
+      "soc2": [
+        "PI1.1"
+      ],
+      "iso27001": [
+        "A.8.15",
+        "A.8.16"
+      ],
+      "guidance": "Pipelines in scope of PI1 have defined validity/accuracy/completeness checks with monitoring evidence.",
+      "owner": "data-eng-lead",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/processing-integrity.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:0f5a292caa9f22014328dbcff93e3f71c816713686d110e954a7c1732f9fed5f",
+      "evidence_id": "ev_b752293c87664291bcdbc82b",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-PRIV-001",
+      "title": "Privacy notice and data-handling controls align with applicable privacy requirements",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 2,
+      "kind": "policy",
+      "soc2": [
+        "P1.1",
+        "P2.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "iso27001": [
+        "A.5.34"
+      ],
+      "guidance": "Privacy obligations (notice, consent, retention, subject rights) are documented and mapped to handling controls; reviewed annually.",
+      "owner": "privacy-lead",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/privacy-notice.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:c875b884b1d02b5ddf98d43ca93d5339b7def0491c28829df30a59b24aa21d32",
+      "evidence_id": "ev_2d13fe0146f64ae2897fc8b4",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-RISK-001",
+      "title": "Risk register reviewed and updated quarterly",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 3,
+      "kind": "procedural",
+      "soc2": [
+        "CC3.1",
+        "CC3.2",
+        "CC3.3",
+        "CC3.4"
+      ],
+      "iso27001": [
+        "A.5.1",
+        "A.5.7"
+      ],
+      "guidance": "A risk assessment covering assets, threats, and likelihood/impact is reviewed each quarter with treatment decisions recorded.",
+      "owner": "security-lead",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/risk-register.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:08563832646bfece90b152ca391ce85aaf4443d8c5ca3353b67bb4d8fd18c5e4",
+      "evidence_id": "ev_c777931e748d49c2bcae58a1",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-SUPP-001",
+      "title": "Suppliers assessed for security before onboarding and reviewed annually",
+      "domain": "procedural",
+      "status": "MISSING",
+      "criticality": 2,
+      "kind": "procedural",
+      "soc2": [
+        "CC9.2"
+      ],
+      "iso27001": [
+        "A.5.19",
+        "A.5.20",
+        "A.5.21"
+      ],
+      "guidance": "Third parties handling company/customer data undergo a security assessment pre-onboarding and a periodic review.",
+      "owner": "procurement",
+      "source": {
+        "sensor": "procedural-evidence",
+        "query": "procedural manifest (governance/supplier-assessments.md)",
+        "payload": "procedural/manifests.yaml"
+      },
+      "findings": [
+        "document_ref is missing or not a file in the repo"
+      ],
+      "valid_until": null,
+      "collected_at": "2026-11-14T21:03:51Z",
+      "fingerprint": "sha256:6272f1b4eeea77c2e4444b311752d146b442c3fa4c7236a96720517f3c871515",
+      "evidence_id": "ev_0fe42324aafc494ea44136ba",
+      "evidence_status": "MISSING",
+      "waiver": null
+    },
+    {
+      "id": "CTRL-VULN-001",
+      "title": "No unpatched critical/high vulnerabilities in production dependencies",
+      "domain": "vulnerability-management",
+      "status": "UNWIRED",
+      "criticality": 3,
+      "kind": "technical",
+      "soc2": [
+        "CC7.1",
+        "CC7.4"
+      ],
+      "iso27001": [
+        "A.8.8"
+      ],
+      "guidance": "SCA (OSV/Dependabot/Snyk) scans every build. Critical/high CVEs with a fix\navailable must be remediated within SLA or carry an approved exception.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-VULN-003",
+      "title": "Remediation SLAs enforced by severity",
+      "domain": "vulnerability-management",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC7.1"
+      ],
+      "iso27001": [
+        "A.8.8",
+        "A.8.19"
+      ],
+      "guidance": "Default SLAs: critical <= 7d, high <= 30d, medium <= 90d. Overdue findings\nlower the readiness score until closed or waivered.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-VULN-006",
+      "title": "SAST runs on every change; high/critical findings block merge",
+      "domain": "vulnerability-management",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC8.1",
+        "CC7.1"
+      ],
+      "iso27001": [
+        "A.8.25",
+        "A.8.28",
+        "A.8.29"
+      ],
+      "guidance": "Semgrep (or equivalent) runs on PRs. High/critical findings block merge in\nenforce mode; lower findings are tracked to closure.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    },
+    {
+      "id": "CTRL-VULN-009",
+      "title": "Cloud and container images scanned for known vulnerabilities",
+      "domain": "vulnerability-management",
+      "status": "UNWIRED",
+      "criticality": 2,
+      "kind": "technical",
+      "soc2": [
+        "CC7.1"
+      ],
+      "iso27001": [
+        "A.8.8",
+        "A.8.7"
+      ],
+      "guidance": "Container images and VMs are scanned (e.g. Trivy, native image scanning,\nDefender/Prowler) before deploy; criticals block promotion.",
+      "owner": null,
+      "source": {
+        "payload": null
+      },
+      "findings": [],
+      "valid_until": null,
+      "collected_at": null,
+      "fingerprint": null,
+      "evidence_id": null,
+      "evidence_status": null,
+      "waiver": null
+    }
+  ],
+  "caveats": [
+    "Synthetic repository fixtures, not a live assessment or an auditor opinion.",
+    "Clean and effective ratios use criticality weights over evaluated controls only.",
+    "Exceptions count toward effective readiness, never clean readiness.",
+    "Unwired catalog controls are excluded from readiness, not treated as passing.",
+    "Procedural checks require a nonempty referenced file and a future review date; they do not verify signatures or document quality.",
+    "Fingerprints describe the collected verdict before expiry or waiver overlays; evidence_status preserves that original verdict."
+  ]
+}
