@@ -26,6 +26,9 @@ is required; the Python/Rego stack remains the source of evaluation semantics.
 Follow the [local GitHub assessment guide](../docs/local-github-assessment.md). The
 local collector evaluates three GitHub checks with private evidence files. Start
 the viewer with `--report /absolute/path/report.json` to open those results.
+Use `--report /absolute/path/review.json` to open an exported review and restore
+its notes at startup. Failed results stay failed; notes do not create waivers.
+The selected file stays unchanged, and newer edits require a fresh export.
 Real reports have a persistent repository/scope banner, never use sample evidence,
 and keep review notes in tab memory only. The public demo rejects real reports.
 
