@@ -19,6 +19,13 @@ from serve_workspace import MAX_REPORT_BYTES, WorkspaceError, new_server, read_r
 
 
 REPORT = {"schema_version": 1, "mode": "github", "controls": [{"id": "CTRL-CHG-001"}]}
+REVIEW = {
+    "format": "soc2-workspace-review-v1",
+    "report": {**REPORT, "controls": [{"id": "CTRL-CHG-002", "status": "FAIL",
+                                      "findings": ["Requires two reviewers; has zero."]}]},
+    "review_notes": {"CTRL-CHG-002": {"owner": "", "progress": "Not started",
+                                    "note": "Solo maintainer; this is not a waiver."}},
+}
 
 
 @contextmanager
@@ -149,8 +156,62 @@ class ViewerTests(unittest.TestCase):
         with viewer() as server:
             self.assertEqual(request(server, "/local-report.json")[0], 404)
 
+    def test_exported_review_serves_notes_and_failed_results_without_writes(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="soc2-review-test-") as temporary:
+            path = Path(temporary) / "review.json"
+            original = json.dumps(REVIEW).encode()
+            path.write_bytes(original)
+            with viewer(path) as server:
+                status, headers, body = request(server, "/local-report.json")
+                self.assertEqual(status, 200)
+                self.assertEqual(body, original)
+                self.assertEqual(json.loads(body)["report"]["controls"][0]["status"], "FAIL")
+                self.assertEqual(json.loads(body)["review_notes"], REVIEW["review_notes"])
+                self.assertEqual(path.read_bytes(), original)
+                self.assertEqual(headers["Cache-Control"], "no-store")
+                self.assertIn("connect-src 'self'", headers["Content-Security-Policy"])
+                self.assertEqual(request(server, "/evidence.json")[0], 404)
+                self.assertEqual(request(server, "/local-report.json", headers={
+                    "Origin": "https://attacker.example"})[0], 403)
+                self.assertEqual(request(server, "/local-report.json", method="POST")[0], 405)
+
 
 class ReportInputTests(unittest.TestCase):
+    def test_raw_reports_and_exported_reviews_keep_their_original_bytes(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="soc2-review-input-test-") as temporary:
+            path = Path(temporary) / "selected.json"
+            for mode in ("fixture", "github"):
+                for document in ({**REPORT, "mode": mode},
+                                 {**REVIEW, "report": {**REVIEW["report"], "mode": mode}},
+                                 {**REVIEW, "report": {**REVIEW["report"], "mode": mode}, "review_notes": {}}):
+                    with self.subTest(mode=mode, wrapped="format" in document):
+                        original = json.dumps(document, indent=2).encode()
+                        path.write_bytes(original)
+                        self.assertEqual(read_report(path), original)
+
+    def test_invalid_review_envelopes_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="soc2-review-input-test-") as temporary:
+            path = Path(temporary) / "private-review.json"
+            invalid = [
+                {**REVIEW, "format": "secret-marker-unknown-format"},
+                {**REVIEW, "format": []},
+                {"format": REVIEW["format"], "report": REPORT},
+                {**REVIEW, "review_notes": None},
+                {**REVIEW, "review_notes": []},
+                {**REVIEW, "report": None},
+                {**REVIEW, "report": REVIEW},
+                {**REVIEW, "report": {**REPORT, "schema_version": True}},
+                {**REVIEW, "report": {**REPORT, "mode": "unknown"}},
+                {**REVIEW, "report": {**REPORT, "controls": []}},
+                {**REVIEW, "review_notes": {"secret-marker": "x" * MAX_REPORT_BYTES}},
+            ]
+            for document in invalid:
+                path.write_text(json.dumps(document))
+                with self.assertRaises(WorkspaceError) as raised:
+                    read_report(path)
+                self.assertNotIn("private-review", str(raised.exception))
+                self.assertNotIn("secret-marker", str(raised.exception))
+
     def test_invalid_reports_fail_without_sensitive_path_or_content(self) -> None:
         with tempfile.TemporaryDirectory(prefix="soc2-report-test-") as temporary:
             path = Path(temporary) / "sensitive-target.json"

@@ -2,7 +2,8 @@
 """Serve the readiness workspace on loopback without exposing local directories.
 
 This viewer has no GitHub connection, credentials, upload endpoint, or telemetry.
-An explicitly selected report is loaded once and served only as local-report.json.
+An explicitly selected report or exported review is loaded once and served only
+as local-report.json. Review notes are restored by the browser, not written back.
 """
 
 from __future__ import annotations
@@ -60,14 +61,22 @@ def read_report(path: str | Path) -> bytes:
     if len(data) > MAX_REPORT_BYTES:
         raise WorkspaceError("Choose a report smaller than 2 MB.")
     try:
-        report = json.loads(data)
+        document = json.loads(data)
     except (ValueError, RecursionError):
         raise WorkspaceError("The selected report is not valid JSON.") from None
+    report = document
+    if isinstance(document, dict) and "format" in document:
+        if (document["format"] != "soc2-workspace-review-v1"
+                or not isinstance(document.get("review_notes"), dict)):
+            raise WorkspaceError("Choose a supported workspace review with review notes.")
+        report = document.get("report")
     if (not isinstance(report, dict) or type(report.get("schema_version")) is not int
             or report.get("schema_version") != 1
             or report.get("mode") not in ("fixture", "github")
             or not isinstance(report.get("controls"), list) or not report["controls"]):
-        raise WorkspaceError("Choose a version 1 fixture or GitHub assessment report.")
+        raise WorkspaceError("Choose a version 1 fixture or GitHub report, or a workspace review containing one.")
+    # Preserve the complete envelope and verdicts. The browser applies its shared
+    # report/note validation on startup, just as it does for Open report imports.
     return data
 
 
@@ -185,7 +194,7 @@ def new_server(report_path: str | Path | None = None, port: int = 0) -> LocalWor
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--report", type=Path, help="One local report.json to open automatically")
+    parser.add_argument("--report", type=Path, help="Local assessment report or exported review JSON to open automatically, restoring saved notes")
     args = parser.parse_args()
     try:
         server = new_server(args.report, args.port)

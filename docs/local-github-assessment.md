@@ -36,7 +36,18 @@ python3 scripts/serve_workspace.py --report /absolute/path/report.json
 Open the `http://127.0.0.1:8765/?local=1` URL printed in your terminal. If the port
 is occupied, add `--port 8766`. Stop the viewer with Ctrl+C. A different/new report
 requires restarting the viewer or using **Open report** in the local workspace.
-To reopen an exported review with its notes, start the viewer and use **Open report**.
+To reopen an exported review with its notes automatically on startup:
+
+```bash
+python3 scripts/serve_workspace.py --report /absolute/path/review.json
+```
+
+The same option accepts raw assessment reports and exported workspace reviews.
+Reviews restore their saved notes without changing policy results: a failed check
+remains failed, and a planning note is not a waiver. The source file is read once
+and is never modified. Reload restores the notes from that selected snapshot;
+export again to keep any newer edits. You can also use **Open report** while the
+local viewer is running.
 
 Optional output: `--output-dir /absolute/new/private/directory`. The directory must
 not exist and must be outside every Git checkout. Symlink paths are refused.
