@@ -5,12 +5,28 @@ Python/Rego policy and sensor pack with a focused browser workspace for
 inspecting findings, tracing evidence, and planning the next assessment.
 
 **[Explore the interactive demo](https://safetymp.github.io/SOC-2/)** ·
+[Assess a real repository locally](docs/local-github-assessment.md) ·
 [Run the workspace locally](demo/README.md) ·
 [Redesign and validation notes](docs/workspace-redesign.md)
 
 The engine evaluates **11 technical controls through 10 OPA/Rego packages and
 9 procedural controls**, from a catalog of **37**. The remaining **17** catalog
 controls are not evaluated and never count as passing.
+
+## Assess your repository
+
+Run from your local checkout with Python, PyYAML, OPA, and an authenticated GitHub CLI:
+
+```bash
+python3 scripts/assess_github.py --repo OWNER/REPO
+python3 scripts/serve_workspace.py --report /absolute/path/report.json
+```
+
+Use the report path printed by the first command. This evaluates three GitHub
+configuration checks; the other 34 catalog controls stay outside scope. Credentials
+stay with your local GitHub CLI, private evidence stays outside the checkout, and
+real review notes stay in tab memory until exported. The public demo accepts only
+fixture reports. See [setup, permissions, and privacy](docs/local-github-assessment.md).
 
 ## Start with the next action
 
@@ -29,7 +45,8 @@ python3 scripts/export_workspace.py --output workspace-report.json
 
 Requires Python, PyYAML, and OPA as described below. Review notes do not change
 measured results. Fix the source and rerun the assessment to verify a change.
-The static workspace has no accounts, live provider connections, or shared storage.
+The browser workspace has no accounts, provider connection, or shared storage.
+The separate local collector makes read-only GitHub API requests.
 
 [![policy-ci](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/SafetyMP/SOC-2)](LICENSE)

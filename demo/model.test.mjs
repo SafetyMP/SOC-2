@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {validateReport,summarize,filterControls,filtersForPage,prioritySort,escapeHTML,sourceURL,parseWorkspaceImport,reviewProgress,validateReviewNotes} from './model.mjs';
+import {validateReport,summarize,filterControls,filtersForPage,prioritySort,escapeHTML,sourceURL,parseWorkspaceImport,reviewProgress,validateReviewNotes,GITHUB_CONTROL_IDS,isLocalWorkspace} from './model.mjs';
 const sample=JSON.parse(readFileSync(new URL('./data/sample-report.json',import.meta.url)));
 const copy=()=>structuredClone(sample);
 test('sample agrees with engine and keeps unwired controls outside score',()=>{
@@ -148,4 +148,84 @@ test('stored notes use the same sanitization and rejection contract as imported 
   stored['CTRL-ACCESS-001'].owner='a'.repeat(101);
   assert.throws(()=>validateReviewNotes(stored,input.report));
   assert.throws(()=>validateReviewNotes({'CTRL-UNKNOWN-999':{}},input.report));
+});
+function realReport() {
+  const report=copy();report.mode='github';report.source_commit=null;
+  report.target={host:'github.com',repository:'ExampleOrg/service-api',branch:'main',commit:'a'.repeat(40),visibility:'private'};
+  report.assessment={kind:'github-repository',control_ids:[...GITHUB_CONTROL_IDS],limitations:['Repository settings only; no SOC 2 opinion.']};
+  for(const c of report.controls) {
+    c.status=GITHUB_CONTROL_IDS.includes(c.id)?'MISSING':'UNWIRED';
+    c.findings=[];c.waiver=null;c.valid_until=null;c.collected_at=null;c.fingerprint=null;c.evidence_id=null;c.evidence_status=null;
+    c.source=GITHUB_CONTROL_IDS.includes(c.id)?{sensor:'github-api',query:'Repository settings',payload:'evidence.json'}:null;
+    if(c.status==='MISSING'){c.check_scope='Default branch settings';c.scope_reason='API access unavailable';}
+  }
+  return report;
+}
+test('real repository reports contain exactly three checks and never borrow fixture passes',()=>{
+  const result=validateReport(realReport());
+  assert.equal(result.mode,'github');assert.equal(result.summary.wired_count,3);
+  assert.equal(result.summary.counts.MISSING,3);assert.equal(result.summary.counts.UNWIRED,34);
+  assert.equal(result.summary.clean_ratio,0);assert.equal(result.summary.effective_ratio,0);
+  assert.equal(result.source_commit,null);
+  const mixed=realReport();mixed.controls.find(c=>c.id==='CTRL-ACCESS-001').status='PASS';
+  assert.throws(()=>validateReport(mixed),/mix/);
+  const stale=realReport();stale.controls.find(c=>c.id==='CTRL-ACCESS-001').fingerprint='sha256:fixture';
+  assert.throws(()=>validateReport(stale),/mix/);
+  const mislabeled=realReport();mislabeled.mode='fixture';
+  assert.throws(()=>validateReport(mislabeled),/fixture report cannot contain/);
+});
+test('real target metadata, declared scope, and measured source must agree',()=>{
+  for(const mutate of [
+    r=>delete r.target,r=>r.target.host='github.example.com',r=>r.target.repository='owner/repo/extra',
+    r=>r.target.repository='../secrets',r=>r.target.repository='owner/..',r=>r.target.repository='-owner/repo',
+    r=>delete r.target.visibility,r=>r.target.visibility='unknown',r=>delete r.target.branch,
+    r=>r.target.branch='',r=>r.target.commit='main',r=>r.source_commit='a'.repeat(40),
+    r=>r.assessment.control_ids=['CTRL-CHG-001','CTRL-CHG-001','CTRL-CHG-008'],
+    r=>r.assessment.control_ids.push('CTRL-ACCESS-001'),r=>r.assessment.kind='fixture',
+    r=>r.assessment.limitations='none',r=>r.controls=r.controls.filter(c=>c.id!=='CTRL-CHG-008'),
+    r=>r.controls.find(c=>c.id==='CTRL-CHG-001').status='EXCEPTION',
+    r=>r.controls.find(c=>c.id==='CTRL-CHG-001').source.sensor='fixture',
+    r=>r.controls.find(c=>c.id==='CTRL-CHG-001').source.payload='fixtures/change/repos.json',
+    r=>r.controls.find(c=>c.id==='CTRL-CHG-001').waiver={reason:'Fixture waiver'},
+    r=>r.controls.find(c=>c.id==='CTRL-CHG-001').evidence_status='PASS'
+  ]) {const r=realReport();mutate(r);assert.throws(()=>validateReport(r));}
+  const unavailable=realReport();unavailable.target.branch=null;unavailable.target.commit=null;unavailable.target.visibility=null;
+  assert.equal(validateReport(unavailable).summary.counts.MISSING,3);
+});
+test('real report exports whitelist fields and discard token-shaped provider baggage',()=>{
+  const input=realReport();input.access_token='top-secret';input.provider_response={authorization:'Bearer secret'};
+  input.target.token='target-secret';input.assessment.credentials='assessment-secret';
+  const c=input.controls.find(c=>c.id==='CTRL-CHG-001');c.token='control-secret';c.source.authorization='source-secret';
+  const normalized=validateReport(input), serialized=JSON.stringify(normalized);
+  for(const baggage of ['top-secret','Bearer secret','target-secret','assessment-secret','control-secret','source-secret'])assert.ok(!serialized.includes(baggage));
+  assert.equal(normalized.controls.find(control=>control.id===c.id).check_scope,'Default branch settings');
+  assert.equal(normalized.controls.find(control=>control.id===c.id).scope_reason,'API access unavailable');
+  assert.notEqual(normalized.controls,input.controls);
+  assert.notEqual(normalized.target,input.target);
+});
+test('hosted import rejects real raw reports and review wrappers before applying data',()=>{
+  const raw=realReport(), wrapper={format:'soc2-workspace-review-v1',report:raw,review_notes:{}};
+  for(const input of [raw,wrapper]) {
+    const before=JSON.stringify(input);
+    assert.throws(()=>parseWorkspaceImport(input),/Real repository reports open only in local workspace/);
+    assert.equal(JSON.stringify(input),before);
+    assert.equal(parseWorkspaceImport(input,{allowReal:true}).report.mode,'github');
+  }
+  assert.equal(parseWorkspaceImport(copy()).report.mode,'fixture');
+});
+test('real review roundtrip retains mode, repository scope, and planning without synthetic relabeling',()=>{
+  const report=realReport();report.controls.find(c=>c.id==='CTRL-CHG-001').status='PASS';
+  const wrapper={format:'soc2-workspace-review-v1',report,review_notes:{'CTRL-CHG-002':{owner:'Engineering',note:'Review required approvals',progress:'In progress'}}};
+  const restored=parseWorkspaceImport(JSON.parse(JSON.stringify(wrapper)),{allowReal:true});
+  assert.equal(restored.report.mode,'github');assert.equal(restored.report.target.repository,'ExampleOrg/service-api');
+  assert.equal(restored.report.summary.counts.PASS,1);assert.equal(restored.report.summary.counts.MISSING,2);
+  assert.equal(restored.notes['CTRL-CHG-002'].progress,'In progress');
+  assert.equal(restored.report.controls.find(c=>c.id==='CTRL-CHG-002').status,'MISSING');
+});
+test('local workspace detection allows only HTTP(S) loopback hosts',()=>{
+  for(const host of ['127.0.0.1','localhost','::1','[::1]'])for(const protocol of ['http:','https:'])assert.equal(isLocalWorkspace({hostname:host,protocol}),true);
+  for(const url of ['http://127.0.0.1:8765/?local=1','https://localhost:8765','http://[::1]:8765'])assert.equal(isLocalWorkspace(url),true);
+  for(const url of ['https://safetymp.github.io/SOC-2/','http://localhost.evil.example','http://0.0.0.0','file:///local/report.json','ws://localhost','localhost'])assert.equal(isLocalWorkspace(url),false);
+  for(const host of ['127.0.0.2','0.0.0.0','dev.localhost','192.168.1.2'])assert.equal(isLocalWorkspace({hostname:host,protocol:'http:'}),false);
+  assert.equal(isLocalWorkspace({hostname:'localhost'}),false);assert.equal(isLocalWorkspace(null),false);
 });
