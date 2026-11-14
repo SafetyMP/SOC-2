@@ -1,39 +1,43 @@
-# Exceptions / waivers (L6)
+# Reference exception overlays
 
-A waiver is **policy-as-data**: a signed, time-boxed record that accepts a
-failing control's risk until a fix lands. It is the _only_ sanctioned bypass for
-an enforcing gate, and it is itself recorded evidence.
+This directory contains example waiver data for the legacy fixture/reference
+engine. It is not part of the real GitHub assessment workflow. That workflow
+reports only PASS, FAIL, and MISSING for its three scoped checks and never loads
+these examples.
 
-## How waivers are evaluated
+A workspace review note records an owner, progress, or rationale. It is **not a
+waiver** and never changes a policy result. For example, a solo-maintainer decision
+can remain visible beside a FAIL for a two-reviewer policy.
 
-At scoring time (`engine/waivers.py`):
+## Current reference behavior
 
-1. `apply_decay` runs first — a `PASS` whose evidence is past `valid_until`
-   becomes `EXPIRED` (not-ready).
-2. `apply_waivers` runs next — a `FAIL` with an **unexpired**, approver-signed
-   waiver becomes `EXCEPTION`.
+[`engine/waivers.py`](../engine/waivers.py) applies validity decay first and exception
+overlays second. A matching waiver considered unexpired can convert a FAIL to
+EXCEPTION. Exceptions contribute to effective readiness, not clean readiness.
+An expired waiver is ignored on the next assessment; the original failure remains.
 
-`Ready_clean = status == PASS` · `Ready_effective = status in {PASS, EXCEPTION}`.
-So a waiver raises **effective** readiness but never **clean** readiness — the
-delta between the two is the risk-acceptance surface area, surfaced in every
-report. An expired waiver vanishes automatically and the control reverts to
-`FAIL`; no manual cleanup.
+This is a reference overlay, not an approval system: the implementation does not
+verify signatures, approver identity, authorization, or compensating controls.
+It also treats an absent or unparseable `expires` value as unexpired. Do not rely
+on it as a production time-boxed enforcement boundary. Use explicit, valid expiry
+values in examples, and keep these limitations distinct from future design goals.
 
-## Schema
+## Example fields
 
-Each `*.yaml` here is a list of waiver maps:
+| Field | Meaning |
+| --- | --- |
+| `id` | Example waiver identifier |
+| `control_id` | Control whose FAIL may receive the overlay |
+| `reason` | Rationale and intended remediation |
+| `approver` | Descriptive approver label; not authenticated by this code |
+| `approved_at` | Descriptive date; not verified as approval evidence |
+| `expires` | Intended expiry; must be a valid timestamp for reliable time-boxing |
+| `compensating_controls` | Contextual references; not evaluated by this overlay |
 
-| Field                   | Required | Meaning                                                     |
-| ----------------------- | -------- | ----------------------------------------------------------- |
-| `id`                    | yes      | Stable waiver ID                                            |
-| `control_id`            | yes      | Catalog control this waives                                 |
-| `reason`                | yes      | Why the risk is accepted + remediation plan                 |
-| `approver`              | yes      | Who accepted the risk (accountable)                         |
-| `approved_at`           | yes      | When it was approved (ISO-8601)                             |
-| `expires`               | yes      | When the waiver lapses (ISO-8601); after this, FAIL returns |
-| `compensating_controls` | no       | Control IDs that mitigate while the waiver holds            |
+[`CTRL-ACCESS-003.yaml`](CTRL-ACCESS-003.yaml) is a sample break-glass wildcard-role
+waiver. Its dates are fixed example data, not renewed authorization or a current
+risk-acceptance decision for this repository or any user.
 
-## Files
-
-- `CTRL-ACCESS-003.yaml` — sample waiver for the break-glass wildcard role
-  (demonstrates the clean-vs-effective gap on `CTRL-ACCESS-003`).
+See [current architecture](../docs/architecture.md) for scope and
+[local review restoration](../docs/local-github-assessment.md) for preserving notes
+without changing findings.

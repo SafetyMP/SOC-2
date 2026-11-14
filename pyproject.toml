@@ -5,11 +5,20 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "soc2-wired-score"
 version = "0.1.0"
-description = "Score only the wired SOC 2 controls. Empty evidence is MISSING, not a pass. Not a certification."
+description = "Local SOC 2 readiness workspace and Python/Rego policy engine for scoped GitHub configuration and evidence review."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 dependencies = ["PyYAML==6.0.3"]
+
+keywords = ["soc2", "readiness", "github", "evidence", "policy-as-code", "opa", "rego"]
+
+[project.urls]
+Homepage = "https://safetymp.github.io/SOC-2/about.html"
+Demo = "https://safetymp.github.io/SOC-2/"
+Documentation = "https://github.com/SafetyMP/SOC-2/blob/main/docs/README.md"
+Repository = "https://github.com/SafetyMP/SOC-2"
+Issues = "https://github.com/SafetyMP/SOC-2/issues"
 
 [project.scripts]
 soc2-score = "engine.run:main"

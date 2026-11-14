@@ -1,14 +1,32 @@
 # Control catalog (L0)
 
-This directory is the input list for the local scorer. The scorer evaluates
-the wired controls below and nothing else. It is not the source of truth for
+This directory defines the 37 controls visible in the readiness workspace.
+Each assessment explicitly selects a smaller evaluated scope; catalog presence
+alone does not mean a control was checked. It is not the source of truth for
 a full-scope SOC 2 exam or for ISO/IEC 27001:2022 Annex A. `soc2` and
 `iso27001` fields are reference labels stored on a control. They are not a
 certification mapping.
 
 An empty payload or an empty list on a technical control scores **MISSING**.
 
-## Wired controls
+## Scope depends on the workflow
+
+| Workflow | Evaluated controls | Outside scope |
+| --- | --- | --- |
+| Real GitHub assessment (`scripts/assess_github.py`) | CTRL-CHG-001, CTRL-CHG-002, CTRL-CHG-008 | 34 |
+| Synthetic sample / default reference engine | 11 technical + 9 procedural | 17 |
+
+The real checks observe default-branch protection/force-push settings, configured
+review count and required status checks, and active GitHub Actions workflow
+presence. The broader catalog titles are aspirations for controls; passing these
+narrow configuration checks does not prove all changes were reviewed, status
+checks succeeded, or deployments were reproducible. The workspace displays the
+specific measurement limits alongside the catalog guidance.
+
+Use the [local GitHub guide](../docs/local-github-assessment.md) for real results.
+The table below documents the larger **reference fixture** scope.
+
+## Wired reference controls
 
 The default inputs evaluate **20 of 37 catalog controls**: **11 technical**
 controls through 10 Rego packages, plus **9 procedural** controls. The other
@@ -93,5 +111,6 @@ Each control is a YAML map:
 
 ## Versioning
 
-The catalog is version-controlled; a control's `id` is immutable. Retire a
-control with `status: retired` rather than reusing an ID.
+The catalog is version-controlled; do not reuse a control's stable `id` for a
+different assertion. A retirement field alone does not remove an evaluation:
+update and validate the routing and scope explicitly when retiring a control.

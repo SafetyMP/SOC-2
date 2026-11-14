@@ -2,13 +2,16 @@
 applyTo: "**/*.rego"
 ---
 
-# Rego coding standards (September 2026)
+# Rego conventions
 
-- Fail closed. Do not add a default allow to unblock an agent or a test.
-- Keep package names and `data.*` paths consistent with existing tests.
-- Do not encode identity or jurisdiction in query parameters.
-- Pair policy edits with tests unless this repository is a documented mirror that forbids local `*_test.rego`.
-
-## This repository
-
-- Catalog and IaC gates live with the sensor pack. Do not change catalog/Rego semantics in a docs-only PR.
+- Preserve package names and `data.*` query paths used by the catalog and evaluator.
+- Pair policy changes with `*_test.rego` cases for the changed behavior, including
+  missing input and relevant negative cases. Never add a default pass to unblock CI.
+- Keep findings attributable to their control IDs. Do not let one control's failure
+  mark unrelated controls as failed or passing.
+- Explain what a check actually observes. A configured setting does not prove
+  operating effectiveness, certification, or universal enforcement.
+- Keep catalog wiring, sensor payload shape, and policy semantics aligned. A
+  documentation-only change must not alter them.
+- Run `opa fmt --fail policies/`, `opa check policies/`, `opa test policies/`, and
+  the repository verification command for relevant changes.

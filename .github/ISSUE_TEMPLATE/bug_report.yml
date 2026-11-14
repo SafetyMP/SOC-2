@@ -1,80 +1,75 @@
-name: Bug Report
-description: Report a defect in catalog, Rego, sensors, or verify
+name: Bug report
+description: Report a workspace, local assessment, policy, or documentation defect
 title: "[bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a bug. Include commands you ran and their output when possible.
-        SOC-2 is a readiness-sensor pack, not a certification — see [SECURITY.md](https://github.com/SafetyMP/SOC-2/blob/main/SECURITY.md).
-
+        Use a synthetic reproduction. Do not attach real reports, review exports, evidence, credentials, or private repository details.
+        Report undisclosed vulnerabilities through [SECURITY.md](https://github.com/SafetyMP/SOC-2/blob/main/SECURITY.md), not this public form.
   - type: textarea
     id: description
     attributes:
       label: What happened?
-      description: Clear description of the bug
-      placeholder: ./scripts/verify.sh fails at the IaC warn gate...
+      description: Describe the user-visible problem and expected behavior.
     validations:
       required: true
-
   - type: dropdown
     id: component
     attributes:
       label: Component
       options:
-        - catalog
-        - policies (Rego)
-        - sensors (GitHub / Terraform / procedural)
-        - engine / scorer / waivers
-        - evidence / locker
-        - scripts / verify / CI
-        - docs
-        - Other
+        - Browser workspace or review import/export
+        - Local GitHub assessment or viewer
+        - Catalog or Rego policies
+        - Legacy sensors or fixture engine
+        - Evidence or optional development locker
+        - Verification or CI
+        - Documentation or public discovery
+        - Unsure
     validations:
       required: true
-
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Workflow
+      options:
+        - Public synthetic demo
+        - Local synthetic fixture report
+        - Local real GitHub assessment
+        - Exported review reopened locally
+        - Tests or GitHub Actions
+        - Not applicable
+    validations:
+      required: true
   - type: textarea
     id: reproduction
     attributes:
       label: Steps to reproduce
-      description: Commands or workflow steps
+      description: Provide commands or browser actions with synthetic values such as OWNER/REPO. Do not paste credentials or private paths.
       placeholder: |
-        1. ./scripts/verify.sh
-        2. python3 -m engine.run
-        3. …
-      render: shell
+        1. Run python3 scripts/serve_workspace.py
+        2. Open the printed local URL
+        3. Select ...
     validations:
       required: true
-
-  - type: textarea
-    id: expected
-    attributes:
-      label: Expected behavior
-    validations:
-      required: true
-
-  - type: textarea
-    id: logs
-    attributes:
-      label: Logs or output
-      description: Paste relevant stderr, CI link, or JSON result
-      render: shell
-
-  - type: dropdown
-    id: environment
-    attributes:
-      label: Environment
-      options:
-        - Local (./scripts/verify.sh)
-        - Docker (demo locker)
-        - GitHub Actions CI
-        - Other
-    validations:
-      required: true
-
   - type: input
     id: version
     attributes:
-      label: Branch, commit, or release tag
-      placeholder: main, abc1234
+      label: Commit or release tag
+      description: Use git rev-parse --short HEAD for a local checkout; include the demo URL for hosted behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and safe diagnostics
+      description: Relevant OS/browser and Python, Node, OPA, or gh versions; include sanitized error text or a public CI link. Never attach real assessment JSON or raw authenticated API output.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Public-report safety
+      options:
+        - label: This report contains no credentials, real assessment or review exports, or private repository/customer evidence.
+          required: true

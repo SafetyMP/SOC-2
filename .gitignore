@@ -32,3 +32,13 @@ __pycache__/
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.*
+
+# Local environments, credentials, generated exports, and Pages staging
+.venv/
+.env
+.env.*
+!.env.example
+/public-workspace/
+/workspace-report.json
+/soc2-review.json
+/soc2-repository-review*.json

@@ -1,22 +1,44 @@
-# SOC-2
+# SOC-2 — local readiness workspace
 
-> OPA/Rego readiness-sensor example pack for SafetyMP / corporate-site-harness. Catalog + GitHub/org sensors emit evidence. Not a CPA opinion. Not SOC 2 certified.
+> Open-source GitHub configuration assessment and evidence review with Python,
+> OPA/Rego, and a local browser workspace. A separate public demo uses synthetic
+> data. Results describe scoped checks, not SOC 2 certification or an audit opinion.
 
-This repository is a policy + sensor pack. Community and Copilot agents may run `./scripts/verify.sh`. They must not claim certification or implement a new factory program here.
+This is an optional reading index, not an agent permission or tool-discovery
+protocol. Read the current source and applicable instructions before acting.
 
-## Docs
+## Start here
 
-- [DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md): sensor-pack positioning
-- [AGENTS.md](AGENTS.md): verify contract and honesty rules
-- [README.md](README.md): what this is / is not, quick start
-- [Copilot instructions](.github/copilot-instructions.md): never-do rules
-- [SECURITY.md](SECURITY.md): vulnerability reporting
+- [README](https://github.com/SafetyMP/SOC-2/blob/main/README.md): purpose, workflow comparison, setup, and scope.
+- [Local GitHub assessment](https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md): credentials, permissions, private outputs, and report/review startup.
+- [Current architecture](https://github.com/SafetyMP/SOC-2/blob/main/docs/architecture.md): implementation and data boundaries.
+- [Documentation map](https://github.com/SafetyMP/SOC-2/blob/main/docs/README.md): current guides and explicitly historical designs.
+- [Public project overview](https://safetymp.github.io/SOC-2/about.html): crawlable introduction.
+- [Synthetic workspace demo](https://safetymp.github.io/SOC-2/): sample findings only; real reports are rejected.
 
-## Verify
+## For repository agents and contributors
 
-```bash
-./scripts/verify.sh
-```
-- [.github/copilot-instructions.md](.github/copilot-instructions.md): repository-wide Copilot coding standards
-- [.github/instructions/](.github/instructions/): path-specific Copilot coding standards (September 2026)
-- [.github/skills/code-review/SKILL.md](.github/skills/code-review/SKILL.md): Copilot code review skill
+- [AGENTS.md](https://github.com/SafetyMP/SOC-2/blob/main/AGENTS.md): repository instructions, command map, and verification.
+- [Contributing](https://github.com/SafetyMP/SOC-2/blob/main/CONTRIBUTING.md): tests and PR expectations.
+- [Copilot instructions](https://github.com/SafetyMP/SOC-2/blob/main/.github/copilot-instructions.md): repository-specific coding context.
+- [Security](https://github.com/SafetyMP/SOC-2/blob/main/SECURITY.md): private reporting and actual security boundaries.
+- [Apache-2.0 license](https://github.com/SafetyMP/SOC-2/blob/main/LICENSE): reuse terms.
+
+## Implementation entry points
+
+- [Real assessment CLI](https://github.com/SafetyMP/SOC-2/blob/main/scripts/assess_github.py): exactly three GitHub checks; remaining 34 controls outside scope.
+- [GitHub collector](https://github.com/SafetyMP/SOC-2/blob/main/sensors/github_assessment.py): authenticated read-only observations with conservative missing-data handling.
+- [Local viewer](https://github.com/SafetyMP/SOC-2/blob/main/scripts/serve_workspace.py): loopback-only report and exported-review startup.
+- [Browser report model](https://github.com/SafetyMP/SOC-2/blob/main/demo/model.mjs): validation, scope separation, scores, and planning notes.
+- [Fixture exporter](https://github.com/SafetyMP/SOC-2/blob/main/scripts/export_workspace.py): synthetic 20-control slice (11 technical, 9 procedural), 17 unevaluated.
+- [Catalog and policies](https://github.com/SafetyMP/SOC-2/blob/main/catalog/README.md): mappings and wired control definitions.
+
+## Interpretation limits
+
+Real credentials stay with the local GitHub CLI, which sends authenticated reads
+to GitHub. Reports and sanitized evidence stay in private local files outside Git
+checkouts. The browser receives no token and has no upload/provider endpoint.
+Real notes remain in tab memory until exported; exported reviews can restore them
+on startup. Notes cannot turn FAIL into PASS or create a waiver. Missing evidence
+and controls outside scope never count as passing. Historical locker and design
+materials do not establish production storage, signatures, or operating effectiveness.

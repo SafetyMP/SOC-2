@@ -34,22 +34,11 @@ jobs:
           python3 scripts/test_export_workspace.py
           python3 scripts/test_assess_github.py
           python3 scripts/test_serve_workspace.py
+          python3 scripts/test_check_repository.py
           node --check demo/app.js
           node --test demo/*.test.mjs
-      - name: Check the static release payload
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          root = Path("demo")
-          for name in ("index.html", "styles.css", "app.js", "model.mjs", "data/sample-report.json"):
-              assert (root / name).is_file(), f"Missing demo asset: {name}"
-          report = json.loads((root / "data/sample-report.json").read_text())
-          assert report["schema_version"] == 1
-          assert report["mode"] == "fixture", "Only fixture reports may ship in the public demo"
-          assert report["controls"], "The demo needs a populated sample report"
-          print("Static demo assets and fixture provenance verified")
-          PY
+      - name: Verify repository links and public discovery assets
+        run: python3 scripts/check_repository.py
 
   deploy:
     # PRs only verify. Publish the sample workspace from main.
@@ -73,6 +62,7 @@ jobs:
         run: |
           mkdir -p public-workspace/data
           cp demo/index.html demo/styles.css demo/app.js demo/model.mjs demo/favicon.svg public-workspace/
+          cp demo/about.html demo/discovery.css demo/sitemap.xml demo/llms.txt public-workspace/
           cp demo/data/sample-report.json public-workspace/data/
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:

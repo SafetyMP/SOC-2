@@ -1,28 +1,38 @@
 ---
 name: code-review
-description: "Review SOC-2 sensor-pack PRs for honesty (no certification claims) and unchanged verify semantics. Use on pull requests that touch engine/, catalog, Rego, or sensors. Flag CPA-opinion language and new harness programs."
+description: Review SOC-2 workspace, assessment, policy, and documentation changes for evidence integrity, privacy, truthful scope, and meaningful verification.
 ---
 
-# Copilot code review — SOC-2
+# Review the SOC-2 readiness workspace
 
-Use this skill when reviewing a pull request in this repository.
+Read the changed files and relevant callers, then give concrete findings tied to
+observable behavior. Use [AGENTS.md](../../../AGENTS.md) and
+[CONTRIBUTING.md](../../../CONTRIBUTING.md) for the current stack and commands.
 
-This is an **OPA readiness-sensor example pack**, not a GRC product.
+## Check the result users will see
 
-- Reject SOC 2 certification or CPA-opinion claims.
-- Reject treating fixture scores as production evidence.
-- Reject new corporate-site-harness programs in this repo (CEO workflow).
-- Verify with `./scripts/verify.sh`.
+- Real GitHub assessments use only the explicitly selected repository and scoped
+  inputs. The public demo stays synthetic, and unevaluated controls never count
+  as passing. Do not treat the legacy mixed-input `--live` runner as real-only.
+- Failed, missing, or unsupported evidence stays visible. Review notes and progress
+  cannot change verdicts or create accepted exceptions.
+- Real reports and credentials remain local. Check credential redaction, private
+  output paths, loopback-only serving, origin/Host checks, and the asset allowlist.
+- Imports and startup-restored reviews use shared validation before application.
+  Untrusted report text must not become HTML, executable code, or network requests.
+- Check descriptions match measured facts. Flag certification, CPA-opinion,
+  operating-effectiveness, or complete-coverage claims unsupported by the code.
+- Browser changes preserve useful empty/error states, keyboard behavior, and
+  readability on small screens. Public metadata describes actual capabilities.
 
+## Assess validation proportionately
 
-## Always flag
+`./scripts/verify.sh` is the repository verification command. Look for focused
+regression coverage where behavior changed and distinguish local tests, mocked
+collection, and real external validation. Flag fabricated success, omitted
+material failures, weakened tests, and secrets or real evidence in a diff.
 
-- Secrets, `.env` values, private keys, or real personal data in the diff
-- Weakened or skipped verify / lint / typecheck / adversarial gates
-- Invented success (prose claiming a gate passed with no command output)
-- Fail-open authorization, skipped human approval, or agents recording `--actor user`
-
-## Never request
-
-- Drive-by major upgrades, formatter churn, or unrelated refactors
-- Softening honesty disclaimers or certification claims
+Prefer actionable correctness and security findings over unrelated upgrades,
+formatter churn, or hypothetical refactors. Do not invent a two-approval merge
+requirement: the repository currently uses a solo-maintainer workflow, while its
+assessment policy can still report the resulting independent-review gap.

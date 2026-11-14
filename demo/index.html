@@ -4,8 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#142e2b">
-  <meta name="description" content="A clear path from policy findings to your next fix. Explore the SOC-2 readiness-sensor pack with traceable sample evidence.">
-  <title>SOC-2 · Readiness workspace</title>
+  <meta name="description" content="Explore the SOC-2 readiness workspace with synthetic findings, traceable evidence, and review notes. Assess real GitHub repositories privately on your computer.">
+  <link rel="canonical" href="https://safetymp.github.io/SOC-2/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SOC-2 readiness workspace">
+  <meta property="og:title" content="SOC-2 readiness workspace · Interactive sample">
+  <meta property="og:description" content="Explore synthetic policy findings and review notes, then assess a real GitHub repository in a private local workspace.">
+  <meta property="og:url" content="https://safetymp.github.io/SOC-2/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SOC-2 readiness workspace · Interactive sample">
+  <meta name="twitter:description" content="Transparent policy findings, local GitHub assessments, and review notes. Public demo data is synthetic.">
+  <link rel="sitemap" type="application/xml" href="./sitemap.xml">
+  <title>SOC-2 readiness workspace · Interactive sample</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
@@ -21,12 +31,21 @@
   </aside>
   <div class="shell">
     <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumb">Overview</strong></div><div class="topbar-actions"><button class="button secondary small" data-action="assess">Assess a repository</button><span class="demo-pill" id="mode-pill">SAMPLE DATA</span><button class="button secondary small" id="import-button">Open report <span aria-hidden="true">↥</span></button><input id="import-file" type="file" accept="application/json,.json" hidden></div></header>
-    <main id="main" tabindex="-1"><div class="loading">Opening your readiness workspace…</div></main>
-    <footer class="page-footer"><span>SOC-2 <span class="footer-dot">·</span> Open-source readiness-sensor pack</span><span>Check results are not an audit opinion or certification.</span></footer>
+    <main id="main" tabindex="-1">
+      <section class="panel guide-note">
+        <p class="eyebrow">OPEN-SOURCE POLICY FINDINGS · LOCAL REVIEW</p>
+        <h1>SOC-2 readiness workspace</h1>
+        <p>Explore synthetic policy findings, trace their evidence, and plan the next fix. This interactive sample evaluates 20 of 37 catalog controls; it is not a live assessment or a certification.</p>
+        <p>To assess a real GitHub repository, run the local collector and viewer from your checkout. That separate workflow evaluates three GitHub configuration checks and keeps credentials and evidence local.</p>
+        <p><a href="./about.html">Learn about the project and its assessment scope</a> · <a href="https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md">Set up a local GitHub assessment</a></p>
+        <p role="status">Opening the interactive sample…</p>
+      </section>
+    </main>
+    <footer class="page-footer"><span>SOC-2 <span class="footer-dot">·</span> <a href="./about.html">About this readiness workspace</a></span><span>Check results are not an audit opinion or certification.</span></footer>
   </div>
   <dialog id="detail" aria-labelledby="detail-title"></dialog>
   <dialog id="help" aria-labelledby="help-title"></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <noscript><p class="no-script">Enable JavaScript to explore this workspace. The <a href="./data/sample-report.json">sample report</a> is also available as JSON.</p></noscript>
+  <noscript><p class="no-script">Enable JavaScript for interactive review, or read the <a href="./about.html">project overview</a> and <a href="./data/sample-report.json">synthetic sample report</a> without it.</p></noscript>
 </body>
 </html>

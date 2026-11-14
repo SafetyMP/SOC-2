@@ -1,8 +1,12 @@
-# SOC-2 evidence workspace
+# SOC-2 readiness workspace
 
-A static browser interface for the existing readiness-sensor pack. Start with
+The browser interface for local GitHub assessments and a separate synthetic
+policy demonstration. Start with
 the findings that need attention, inspect the source and control guidance, and
 keep a local review plan without changing the underlying verdicts.
+
+[Public project overview](https://safetymp.github.io/SOC-2/about.html) ·
+[Interactive sample](https://safetymp.github.io/SOC-2/)
 
 The bundled report is generated from repository fixtures. It is not a live
 assessment, an audit report, or evidence of SOC 2 certification. Catalog coverage
@@ -114,3 +118,27 @@ Mobile navigation exposes every destination, with larger task text and touch
 targets. Readiness explanations are available beside the summary metrics. See
 [the usability review](../docs/workspace-usability-review.md) for observed issues,
 changes, and validation scope.
+
+## Public discovery
+
+`about.html` provides a project introduction, assessment limits, and setup links
+without requiring JavaScript. `index.html` contains an initial semantic summary
+and links before the interactive workspace loads. Both pages declare descriptive
+titles, summaries, canonical URLs, and social-sharing text. The overview includes
+SoftwareSourceCode structured data with the actual repository, stack, and license;
+it makes no ratings or certification claims.
+
+`sitemap.xml` lists only the two canonical public HTML URLs, never hash routes or
+local evidence. `llms.txt` is a concise public source index for tools and readers;
+it is not an authorization mechanism or a guarantee of agent retrieval.
+
+GitHub Pages serves this project under `/SOC-2/`. A robots file at that subpath
+would not control the host: robots.txt must live at `https://safetymp.github.io/robots.txt`.
+This project does not modify that separate host-root site. Search Console sitemap
+submission and indexing inspection require the host owner's verified access;
+metadata and crawlable links do not guarantee indexing or ranking.
+
+Primary guidance: [Google's JavaScript SEO basics](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics),
+[crawlable links](https://developers.google.com/search/docs/crawling-indexing/links-crawlable),
+[sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap),
+and [robots.txt location](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt).

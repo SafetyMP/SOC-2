@@ -78,7 +78,8 @@ class ViewerTests(unittest.TestCase):
 
     def test_public_assets_are_exact_and_root_query_does_not_select_files(self) -> None:
         for path in ("/?local=1", "/index.html", "/app.js", "/model.mjs",
-                     "/styles.css", "/favicon.svg", "/data/sample-report.json"):
+                     "/styles.css", "/favicon.svg", "/data/sample-report.json",
+                     "/about.html", "/discovery.css", "/sitemap.xml", "/llms.txt"):
             with self.subTest(path=path):
                 self.assertEqual(request(self.server, path)[0], 200)
         status, _, body = request(self.server, "/local-report.json?file=README.md")
@@ -133,6 +134,7 @@ class ViewerTests(unittest.TestCase):
             _, headers, _ = request(self.server, path)
             self.assertEqual(headers["Cache-Control"], "no-store")
             self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+            self.assertEqual(headers["X-Robots-Tag"], "noindex, nofollow, nosnippet")
             self.assertEqual(headers["Referrer-Policy"], "no-referrer")
             self.assertEqual(headers["Cross-Origin-Resource-Policy"], "same-origin")
             self.assertNotIn("Access-Control-Allow-Origin", headers)
