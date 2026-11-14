@@ -29,7 +29,7 @@ With the repository's Python dependencies and OPA installed:
 python3 scripts/export_workspace.py --output /tmp/soc2-workspace-report.json
 ```
 
-Use **Import report** in the workspace to open that JSON locally. The exporter
+Use **Open report** in the workspace to open that JSON locally. The exporter
 evaluates repository fixtures only; it does not contact providers, run live
 sensors, or push to an evidence locker. It writes the requested JSON output
 without replacing the engine's existing evidence outputs.
@@ -46,7 +46,10 @@ the engine does not verify document content or approval signatures.
 
 Imported reports stay in the browser. Review annotations are browser-local
 planning notes and never change a control's policy result, evidence, or waiver.
-Export a report to retain the review context before clearing browser data.
+Use **Export review** to save the report and action plans together. Reopen that JSON
+through **Open report** to restore the plans after reviewing the replacement notice.
+Raw fixture reports are also accepted. Imported reports stay in memory until reload;
+export your latest review before closing or refreshing the page.
 Do not publish sensitive reports in this public repository or its Pages demo.
 
 ## Verify
@@ -90,3 +93,16 @@ provider data.
   review note or checklist.
 - Readiness describes the evaluated slice, not the entire catalog or an
   auditor's opinion.
+
+## First-use improvements
+
+The action form follows each finding and recommended step; technical guidance
+and evidence remain available in an expandable section. Closing a control with
+unsaved edits offers Keep editing or Discard changes. Saved plans show their owner,
+progress, and note in the queue, and can be filtered by progress without changing
+policy results. Blank owners remain blank when reopened.
+
+Mobile navigation exposes every destination, with larger task text and touch
+targets. Readiness explanations are available beside the summary metrics. See
+[the usability review](../docs/workspace-usability-review.md) for observed issues,
+changes, and validation scope.
