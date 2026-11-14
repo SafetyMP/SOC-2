@@ -1,8 +1,35 @@
-# SOC-2 — local scorer for wired controls
+# SOC-2 — readiness workspace
 
-This repository scores only the controls that are actually wired: **8
-technical** OPA/Rego checks and **9 procedural** date manifests. Other IDs in
-`catalog/` are not part of the score. See [catalog/README.md](catalog/README.md).
+Understand your evidence. Find the next fix. SOC-2 pairs an open-source
+Python/Rego policy and sensor pack with a focused browser workspace for
+inspecting findings, tracing evidence, and planning the next assessment.
+
+**[Explore the interactive demo](https://safetymp.github.io/SOC-2/)** ·
+[Run the workspace locally](demo/README.md) ·
+[Redesign and validation notes](docs/workspace-redesign.md)
+
+The engine evaluates **11 technical controls through 10 OPA/Rego packages and
+9 procedural controls**, from a catalog of **37**. The remaining **17** catalog
+controls are not evaluated and never count as passing.
+
+## Start with the next action
+
+- **Overview:** clean and effective readiness, coverage, and prioritized findings.
+- **Action queue:** inspect the affected resource, evidence source, and next step.
+- **Control library:** search and filter all 37 controls, including the unevaluated scope.
+- **Evidence:** inspect collection dates, validity, fingerprints, and original verdicts.
+- **Local review:** save an owner and next action in your browser, then export a review.
+
+The hosted demo uses synthetic fixtures. Generate a fresh fixture snapshot from
+your checkout and import it without uploading its contents:
+
+```bash
+python3 scripts/export_workspace.py --output workspace-report.json
+```
+
+Requires Python, PyYAML, and OPA as described below. Review notes do not change
+measured results. Fix the source and rerun the assessment to verify a change.
+The static workspace has no accounts, live provider connections, or shared storage.
 
 [![policy-ci](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/SafetyMP/SOC-2)](LICENSE)

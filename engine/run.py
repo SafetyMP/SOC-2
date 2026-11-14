@@ -24,7 +24,8 @@ def load_jobs(jobs_path):
 
 
 def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions",
-        procedural_dir="procedural", as_of=None, live=False, org=False):
+        procedural_dir="procedural", as_of=None, live=False, org=False,
+        merkle_head_path=None):
     catalog = Catalog.load(_path(catalog_dir))
     implemented = catalog.implemented_packages(_path(policies_dir))
     jobs = load_jobs(_path(jobs_path))
@@ -103,8 +104,8 @@ def run(catalog_dir, policies_dir, jobs_path, locker, exceptions_dir="exceptions
     merkle = MerkleLog()
     for rec in records:
         merkle.append(rec["fingerprint"])
-    head_path = os.path.join(_REPO_ROOT, "evidence/out/merkle_head.txt")
-    os.makedirs(os.path.dirname(head_path), exist_ok=True)
+    head_path = merkle_head_path or os.path.join(_REPO_ROOT, "evidence/out/merkle_head.txt")
+    os.makedirs(os.path.dirname(os.path.abspath(head_path)), exist_ok=True)
     with open(head_path, "w") as fh:
         fh.write(merkle.head + "\n")
 
