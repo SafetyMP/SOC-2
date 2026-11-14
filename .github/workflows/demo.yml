@@ -1,0 +1,76 @@
+name: Evidence workspace
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+      - name: Install existing Python dependency and pinned policy runtime
+        run: |
+          set -euo pipefail
+          pip install --quiet -r requirements.txt
+          curl -fsSL -o opa https://github.com/open-policy-agent/opa/releases/download/v1.20.2/opa_linux_amd64_static
+          echo "69da5179ee403d10fa11bab6cfb4ffb0d23dba5f9b682fa977db772a1da5670f  opa" | sha256sum -c -
+          chmod +x opa && sudo mv opa /usr/local/bin/opa
+      - name: Verify report adapter and browser model
+        run: |
+          set -euo pipefail
+          python3 scripts/test_export_workspace.py
+          node --check demo/app.js
+          node --test demo/*.test.mjs
+      - name: Check the static release payload
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("demo")
+          for name in ("index.html", "styles.css", "app.js", "model.mjs", "data/sample-report.json"):
+              assert (root / name).is_file(), f"Missing demo asset: {name}"
+          report = json.loads((root / "data/sample-report.json").read_text())
+          assert report["schema_version"] == 1
+          assert report["mode"] == "fixture", "Only fixture reports may ship in the public demo"
+          assert report["controls"], "The demo needs a populated sample report"
+          print("Static demo assets and fixture provenance verified")
+          PY
+
+  deploy:
+    # PRs only verify. Enable GitHub Pages source = GitHub Actions before using
+    # this job; an initial gh-pages branch publication can be retained until then.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: verify-demo
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: demo
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

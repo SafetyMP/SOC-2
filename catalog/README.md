@@ -10,6 +10,10 @@ An empty payload or an empty list on a technical control scores **MISSING**.
 
 ## Wired controls
 
+The default inputs evaluate **20 of 37 catalog controls**: **11 technical**
+controls through 10 Rego packages, plus **9 procedural** controls. The other
+17 catalog controls are excluded from the readiness score.
+
 ### Technical (OPA/Rego)
 
 `engine/jobs.yaml` routes these packages. Each one needs a non-empty array in
@@ -21,16 +25,25 @@ the named field.
 | CTRL-ACCESS-003 | `access_control.no_wildcard_policies` | `policies` |
 | CTRL-CHG-001 | `change_mgmt.branch_protection_enforced` | `repositories` |
 | CTRL-CHG-002 | `change_mgmt.branch_protection_enforced` | `repositories` |
+| CTRL-CHG-005 | `change_mgmt.iac_policy_gate` | `plans` |
+| CTRL-CHG-008 | `change_mgmt.ci_required` | `repositories` |
 | CTRL-ENC-001 | `encryption.at_rest_required` | `data_resources` |
+| CTRL-ENC-003 | `encryption.cmk_required_for_prod` | `data_resources` |
 | CTRL-NET-008 | `network.tls_12_required` | `endpoints` |
 | CTRL-LOG-001 | `logging.audit_log_enabled` | `audit_logs` |
 | CTRL-BKP-001 | `backup.automated_backup_enabled` | `datastores` |
 
 ### Procedural (date manifests)
 
-`sensors/procedural.py` reads `procedural/manifests.yaml`. PASS means
-`next_review_due` is still in the future. The scorer does not open or verify
-`document_ref`.
+`sensors/procedural.py` reads `procedural/manifests.yaml`. PASS requires a
+`document_ref` that resolves to a nonempty file inside the repository and a
+parseable `next_review_due` strictly in the future. Missing evidence or a
+missing/unparseable date scores MISSING. With the file present, a due date equal
+to or earlier than the assessment time scores EXPIRED. The sensor checks file
+presence and size; it does not inspect document content or verify signatures.
+
+The supplied manifests reference files that are absent from this repository, so
+all nine sample procedural controls score MISSING regardless of their dates.
 
 - CTRL-GOV-001, CTRL-GOV-002
 - CTRL-RISK-001
@@ -45,9 +58,8 @@ the named field.
 
 The YAML files also name controls this job does not run. Those IDs do not
 affect the score. Examples that have no Rego package in this tree:
-`change_mgmt.iac_policy_gate`, `change_mgmt.ci_required`,
-`encryption.cmk_required_for_prod`, `encryption.no_hardcoded_secrets`, and
-`data.lifecycle_enforced`.
+`access_control.no_human_access_keys`, `access_control.service_account_key_age`,
+`encryption.no_hardcoded_secrets`, and `data.lifecycle_enforced`.
 
 ## Schema
 
@@ -60,8 +72,8 @@ Each control is a YAML map:
 | `soc2`              | list                                    | Reference labels only. Not a SOC 2 exam scope.                                      |
 | `iso27001`          | list                                    | Reference labels only. Not an ISO/IEC 27001 certification scope.                   |
 | `criticality`       | int 1-3                                 | Weight used by the readiness scorer (L4)                                            |
-| `assertion_type`    | `technical` \| `procedural` \| `policy` | Stored and validated. The procedural sensor scores `next_review_due` only. It does not open a document. |
-| `evidence_validity` | ISO-8601 duration                       | Required on each control. The scorer does not read this duration. Procedural EXPIRED means `next_review_due` is in the past. |
+| `assertion_type`    | `technical` \| `procedural` \| `policy` | Stored and validated. Procedural evaluation checks evidence file presence and review date, not document content or approval signatures. |
+| `evidence_validity` | ISO-8601 duration                       | Used by the record builder to derive technical `valid_until` from collection time. Procedural records instead use the manifest review date. The scorer applies expiry to `valid_until`. |
 | `sensors`           | list                                    | Which L2 adapters produce evidence                                                  |
 | `rego_packages`     | list                                    | Which Rego packages evaluate this control (technical only)                          |
 | `guidance`          | string                                  | Implementation notes. Not an audit opinion.                                         |
