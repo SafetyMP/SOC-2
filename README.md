@@ -1,143 +1,137 @@
-# SOC-2 — readiness workspace
+# SOC-2 — local readiness workspace
 
-Understand your evidence. Find the next fix. SOC-2 pairs an open-source
-Python/Rego policy and sensor pack with a focused browser workspace for
-inspecting findings, tracing evidence, and planning the next assessment.
+Assess GitHub repository settings, understand policy findings, and plan the next
+fix without sending your evidence to a hosted workspace. SOC-2 combines a local
+Python collector, OPA/Rego policy checks, and a browser interface for evidence
+review. A synthetic demo lets you explore the workflow before connecting anything.
 
-**[Explore the interactive demo](https://safetymp.github.io/SOC-2/)** ·
-[Assess a real repository locally](docs/local-github-assessment.md) ·
-[Run the workspace locally](demo/README.md) ·
-[Redesign and validation notes](docs/workspace-redesign.md)
+**[Try the sample workspace](https://safetymp.github.io/SOC-2/)** ·
+[Project overview](https://safetymp.github.io/SOC-2/about.html) ·
+[Local assessment guide](docs/local-github-assessment.md) ·
+[Documentation](docs/README.md)
 
-The engine evaluates **11 technical controls through 10 OPA/Rego packages and
-9 procedural controls**, from a catalog of **37**. The remaining **17** catalog
-controls are not evaluated and never count as passing.
+[![Workspace checks](https://github.com/SafetyMP/SOC-2/actions/workflows/demo.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/demo.yml)
+[![Policy checks](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml)
 
-## Assess your repository
+## Choose your workflow
 
-Run from your local checkout with Python, PyYAML, OPA, and an authenticated GitHub CLI:
+| | Real GitHub assessment | Sample workspace |
+| --- | --- | --- |
+| Purpose | Inspect one repository's observed settings and plan fixes | Learn how findings, evidence, and review notes work |
+| Input | Read-only GitHub API collection using your local `gh` authentication | Bundled synthetic fixtures and procedural manifests |
+| Scope | **3 GitHub checks**, 34 catalog controls outside scope | **20 checks**: 11 technical and 9 procedural; 17 outside scope |
+| Where it runs | Local CLI and loopback browser viewer | [GitHub Pages demo](https://safetymp.github.io/SOC-2/) or local viewer |
+| Evidence and notes | Private files outside Git checkouts; notes in tab memory until exported | Synthetic report; sample notes stored in your browser |
+
+A pass describes the supplied evidence for a specific check. It is **not a SOC 2
+report, CPA opinion, certification, or proof of complete framework coverage**.
+Missing evidence and controls outside scope never become passes.
+
+## Assess a repository
+
+Prerequisites: Python 3.11+, [OPA](https://www.openpolicyagent.org/docs/latest/#running-opa),
+and the [GitHub CLI](https://cli.github.com/). CI verifies policies with OPA 1.20.2.
+Run from a checkout; no npm installation, hosted workspace account, or Docker service is
+needed for this workflow.
 
 ```bash
+git clone https://github.com/SafetyMP/SOC-2.git
+cd SOC-2
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+# Use your existing GitHub CLI login, or sign in from your own terminal:
+gh auth login --hostname github.com
 python3 scripts/assess_github.py --repo OWNER/REPO
+```
+
+The collector prints a private report path and the command to open it:
+
+```bash
 python3 scripts/serve_workspace.py --report /absolute/path/report.json
 ```
 
-Use the report path printed by the first command. This evaluates three GitHub
-configuration checks; the other 34 catalog controls stay outside scope. Credentials
-stay with your local GitHub CLI, private evidence stays outside the checkout, and
-real review notes stay in tab memory until exported. The public demo accepts only
-fixture reports. See [setup, permissions, and privacy](docs/local-github-assessment.md).
+Open the localhost URL printed in your terminal. The three observed checks cover
+**default-branch protection and force-push settings**, **required reviews and
+status checks**, and **active GitHub Actions workflow presence**. They do not
+prove that every change received review or every deployment was reproducible.
+Unreadable or unsupported settings become **MISSING**. See the
+[permissions, exit codes, and privacy guide](docs/local-github-assessment.md).
 
-## Start with the next action
+## Review, export, and resume
 
-- **Overview:** clean and effective readiness, coverage, and prioritized findings.
-- **Action queue:** inspect the affected resource, evidence source, and next step.
-- **Control library:** search and filter all 37 controls, including the unevaluated scope.
-- **Evidence:** inspect collection dates, validity, fingerprints, and original verdicts.
-- **Local review:** save an owner and next action in your browser; export and reopen reviews to resume work.
-
-The hosted demo uses synthetic fixtures. Generate a fresh fixture snapshot from
-your checkout and import it without uploading its contents:
+Open a finding to inspect its measurement scope, source, and recommended next
+step. Capture an owner, progress, and a review note. Export the report and plans
+with **Export review**, then reopen that local file directly:
 
 ```bash
-python3 scripts/export_workspace.py --output workspace-report.json
+python3 scripts/serve_workspace.py --report /absolute/path/review.json
 ```
 
-Requires Python, PyYAML, and OPA as described below. Review notes do not change
-measured results. Fix the source and rerun the assessment to verify a change.
-The browser workspace has no accounts, provider connection, or shared storage.
-The separate local collector makes read-only GitHub API requests.
+Saved notes restore at startup. A note never changes a policy verdict or creates
+a waiver: a solo-maintainer decision can be recorded while the two-reviewer
+check remains **FAIL**. Fix the source and rerun the assessment to measure a change.
+Export newer edits before closing or reloading; the viewer never writes back to
+the selected file.
 
-[![policy-ci](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml)
-[![License: Apache-2.0](https://img.shields.io/github/license/SafetyMP/SOC-2)](LICENSE)
+## Explore without connecting GitHub
 
-A score is evidence about those wired checks. It is **not** a CPA opinion,
-**not** a SOC 2 Type I/II report, and **not** an ISO/IEC 27001 certification.
-An auditor still opines. See [SECURITY.md](SECURITY.md).
+The [public demo](https://safetymp.github.io/SOC-2/) contains sample data only and
+rejects real repository reports. Preview it locally with:
 
-An empty payload or an empty list scores **MISSING**. A deny rule that sees
-no rows is not a pass.
+```bash
+python3 scripts/serve_workspace.py
+```
 
-## What it scores
+Generate a fresh **fixture-only** report from this checkout with:
 
-| Layer | In this repo | What the scorer uses |
-|-------|--------------|----------------------|
-| L0 Catalog | `catalog/` | Wired IDs only. The YAML still lists controls this job does not run |
-| L1 Policy | `policies/` | The 10 Rego packages in `engine/jobs.yaml`, plus `lib.payload` (empty input is not a pass) |
-| L2 Sensors | `sensors/` | GitHub, Terraform, and procedural manifests. Cloud, Kubernetes, and SAST adapters are stubs and are not scored |
-| L3–L4 Engine | `engine/` | Evaluator + clean/effective scorer |
-| L5 Locker | `evidence/` + `docker-compose.yml` | Dev locker image is `pgsty/silo` (Docker Hub deleted `minio/minio`). Prod replica is stubbed |
-| L6 Waivers | `exceptions/` | Time-boxed policy-as-data. Waivers do not count as clean |
-| L7 IaC gate | `scripts/iac_gate.sh` | Warn-mode sample Terraform for encryption at rest and the infrastructure approval gate |
+```bash
+python3 scripts/export_workspace.py --output /absolute/path/sample-report.json
+```
 
-Current wired slice: **11 technical + 9 procedural** controls of 37 catalog
-entries. Unimplemented Rego is reported separately from the score so a missing
-package does not count as green.
+The legacy `python3 -m engine.run --live` path combines GitHub observations with
+other configured inputs. Use `scripts/assess_github.py` for the dedicated real-only
+workflow. [Workspace usage](demo/README.md) explains both report formats.
 
-## What this is not
+## Privacy and scope
 
-- A SOC 2 **certification**, attestation, or CPA opinion
-- An ISO/IEC 27001 certification
-- A standalone GRC / audit product or a replacement for an ISMS, SIEM, or
-  production object-lock locker
-- Evidence you can show an auditor without replacing sample manifests, fixtures,
-  and demo locker credentials with your own systems
-- A new corporate-site-harness program (that wiring is a later factory slice;
-  see [DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md))
+- Credentials stay with your local GitHub CLI; the collector sends authenticated
+  read requests to GitHub. Tokens are not stored in reports or given to the browser.
+- Real reports and sanitized evidence are written to fresh private directories
+  outside Git checkouts. The viewer binds to `127.0.0.1`, has no upload endpoint,
+  and loads no external fonts, analytics, or scripts.
+- Review exports contain repository information. Keep them local and private;
+  never attach real evidence or credentials to public issues or pull requests.
+- Fingerprints identify collected records. The workspace does not authenticate
+  report provenance, verify approval signatures, or operate a production evidence vault.
+- The optional development locker, sample exceptions, and historical architecture
+  plans are reference components. They are not required for local assessment.
 
-## Quick start
+Read [SECURITY.md](SECURITY.md) for the security boundary and private reporting.
 
-Definition of Done (hermetic):
+## Develop and contribute
+
+The stack is Python, OPA/Rego, and buildless HTML/CSS/JavaScript. Full verification
+requires Node.js 22 and Terraform in addition to the assessment prerequisites:
 
 ```bash
 ./scripts/verify.sh
 ```
 
-Requires `python3`, [PyYAML](https://pypi.org/project/PyYAML/),
-[OPA](https://www.openpolicyagent.org/docs/latest/#running-opa), and
-[Terraform](https://developer.hashicorp.com/terraform/install) on `PATH`.
+Verification does not collect live GitHub evidence or start the locker. Initial
+installation of tools and Terraform providers can require network access.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for focused checks and pull-request guidance.
 
-Install the wired scorer from this checkout, then run it. `pip install -e .` puts `soc2-score` on `PATH`. Policies stay in this tree; an empty sensor payload scores `MISSING`, not `PASS`. This is not a certification.
+| Start here | What you will find |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Current data flow and implementation boundaries |
+| [Documentation map](docs/README.md) | User, contributor, and historical references |
+| [Catalog](catalog/README.md) / [policies](policies/) | Control metadata and executable Rego checks |
+| [Sensors](sensors/README.md) / [engine](engine/README.md) | Collection, evaluation, and scoring |
+| [Agent instructions](AGENTS.md) | Repository conventions, safe commands, and verification |
+| [Agent reading index](llms.txt) | A short, optional navigation aid for automated readers |
 
-```bash
-pip install -e .
-soc2-score
-```
-
-`python3 -m engine.run` is the same command.
-
-IaC gate over `terraform-examples/` (intentional unencrypted RDS should appear
-as a finding; `warn` exits 0, `enforce` exits 1):
-
-```bash
-./scripts/iac_gate.sh warn
-```
-
-Optional local evidence locker (demo credentials only — localhost):
-
-```bash
-docker compose up -d
-```
-
-## Layout
-
-| Path | Role |
-|------|------|
-| [catalog/](catalog/README.md) | Wired control IDs this scorer runs |
-| [policies/](policies/) | Rego library + `opa test` |
-| [sensors/](sensors/README.md) | Normalized JSON adapters (GitHub/org, Terraform, procedural) |
-| [engine/](engine/README.md) | Eval, score, waivers |
-| [evidence/](evidence/README.md) | Locker client, Merkle log, auditor packaging |
-| [docs/DESIGN-PIVOT.md](docs/DESIGN-PIVOT.md) | Sensor-pack positioning (not a GRC product) |
-| [docs/readiness-layer-design.md](docs/readiness-layer-design.md) | Architecture (design + implemented Phase 1) |
-| [AGENTS.md](AGENTS.md) | Agent verify contract |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to propose changes |
-
-## License
-
-[Apache License 2.0](LICENSE).
-
-
-## Documentation map
-
-[docs/README.md](docs/README.md) lists the repository layout. Community policy files are the root `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`.
+Maintained in [SafetyMP/SOC-2](https://github.com/SafetyMP/SOC-2). Use
+[issues](https://github.com/SafetyMP/SOC-2/issues) for sanitized bug reports and
+feature proposals; follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+Licensed under [Apache-2.0](LICENSE).

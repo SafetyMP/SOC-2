@@ -2,17 +2,18 @@
 applyTo: "**/*.py"
 ---
 
-# Python coding standards (September 2026)
+# Python conventions
 
-- Type-annotate public functions and module-level APIs.
-- Follow the existing Ruff / pyproject configuration. Do not disable rules repository-wide to land a change.
-- Tests use pytest and the existing `tests/` layout.
-- Never print, log, or commit secrets, `.env` values, or private keys.
-- Do not claim a gate passed from prose. Run the documented verify command and keep the output.
-
-## This repository
-
-- Readiness-sensor pack: OPA catalog + GitHub/org sensors that emit evidence.
-- Do not claim SOC 2 certification, attestation, or a CPA opinion.
-- Do not treat fixture scores or the demo locker as production evidence.
-- Do not add a new corporate-site-harness program here without the CEO workflow.
+- Preserve the existing Python 3.11+ stack. Type-annotate public functions and APIs.
+- Reuse the local component's style. Tests are executable `test_*.py` files using
+  unittest or assertions; do not assume a separate `tests/` directory or pytest.
+- Keep credentials out of arguments, logs, exceptions, reports, and fixtures.
+  Provider errors need safe diagnostics rather than raw stderr or response bodies.
+- New real evidence belongs in fresh private files outside Git checkouts. Never
+  overwrite retained evidence as part of collection or tests.
+- Provider requests must be explicit, bounded, and read-only for this assessment
+  workflow. Keep the real collector separate from the fixture runner.
+- Validate untrusted input before evaluation; unreadable or unsupported settings
+  remain MISSING. Do not relax validation to manufacture passing results.
+- Run the relevant script tests and `./scripts/verify.sh`; state any environment
+  limitation instead of claiming checks that were not run.

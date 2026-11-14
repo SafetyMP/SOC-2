@@ -27,6 +27,10 @@ ASSETS = {
     "/styles.css": ("styles.css", "text/css; charset=utf-8"),
     "/favicon.svg": ("favicon.svg", "image/svg+xml"),
     "/data/sample-report.json": ("data/sample-report.json", "application/json"),
+    "/about.html": ("about.html", "text/html; charset=utf-8"),
+    "/discovery.css": ("discovery.css", "text/css; charset=utf-8"),
+    "/sitemap.xml": ("sitemap.xml", "application/xml"),
+    "/llms.txt": ("llms.txt", "text/plain; charset=utf-8"),
 }
 CSP = (
     "default-src 'self'; connect-src 'self'; script-src 'self'; "
@@ -120,6 +124,7 @@ def new_server(report_path: str | Path | None = None, port: int = 0) -> LocalWor
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Security-Policy", CSP)
             self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Robots-Tag", "noindex, nofollow, nosnippet")
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Cross-Origin-Resource-Policy", "same-origin")
             self.send_header("X-Frame-Options", "DENY")

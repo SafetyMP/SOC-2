@@ -6,6 +6,11 @@ repository is a YAML manifest. `sensors/procedural.py` uses `control_id` and
 checks `document_ref` file presence and `next_review_due`. It does not inspect
 document content or verify a signature.
 
+These checks belong to the synthetic/reference engine path, not the three-check
+real GitHub assessment. The public sample uses nine manifests whose evidence
+paths are absent; it does not claim those documents exist or were approved.
+See [current architecture](../docs/architecture.md) for the two scopes.
+
 ## How it's evaluated (`sensors/procedural.py`)
 
 For each manifest, at scoring time:
@@ -22,7 +27,7 @@ For each manifest, at scoring time:
 
 The engine ingests these verdicts alongside the technical (Rego) verdicts, so
 procedural and technical controls score through the same readiness model and
-appear together in the auditor package.
+can be rendered together in the unsigned reference Markdown/JSON package.
 
 ## Schema
 
@@ -39,13 +44,13 @@ appear together in the auditor package.
 
 - `manifests.yaml` — **SAMPLE** attestations for the 9 procedural/policy
   controls. The `document_ref` paths are not files in this repo, so the sensor
-  scores them MISSING. CTRL-RISK-001 is also past its review date; once its
-  file exists, that date scores EXPIRED.
+  scores them MISSING. Fixed example dates may be expired when you run them;
+  dates do not establish document approval or operating effectiveness.
 
 ## Running
 
 ```bash
 python3 -m sensors.procedural                      # print current procedural verdicts
-python3 -m engine.run --live                       # ingest procedural + technical, score
+python3 -m engine.run                              # evaluate configured fixtures + procedural inputs
 python3 -m evidence.packaging                      # package reflects procedural coverage
 ```

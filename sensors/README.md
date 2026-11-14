@@ -1,12 +1,53 @@
-# Sensors (L2)
+# Sensors and normalized inputs
 
-Sensors turn each target surface into **normalized JSON** that the provider-agnostic
-Rego policies evaluate. This file is the **output contract** — a sensor is conforming
-iff its emission matches the schema its policy expects.
+Sensors turn source observations into JSON consumed by OPA/Rego. The real
+repository workflow uses a dedicated conservative collector; the broader examples
+below describe policy input shapes, not implemented live collection for every
+surface. See [current architecture](../docs/architecture.md).
 
-Each sensor emission is wrapped in the evidence-record envelope from
-`docs/readiness-layer-design.md §6`, with the surface-specific payload in a
-`raw` field. The payloads below are what Rego `input` is bound to.
+## Real GitHub repository assessment
+
+```bash
+python3 scripts/assess_github.py --repo OWNER/REPO
+```
+
+[`github_assessment.py`](github_assessment.py) uses the local GitHub CLI for
+read-only API requests to one explicitly named repository. It inspects the default
+branch, classic protection and effective rules, and active Actions workflows.
+It retains allowlisted normalized facts and safe endpoint/status diagnostics;
+credentials, raw response bodies, headers, and subprocess error output do not enter
+the exported evidence. API collection is a series of observations, not an atomic
+snapshot.
+
+The real CLI evaluates exactly three checks:
+
+| Control | Normalized facts | Measurement limit |
+| --- | --- | --- |
+| CTRL-CHG-001 | `protected`, `allow_force_pushes` | Default-branch configuration; not proof every change followed a pull request |
+| CTRL-CHG-002 | `required_reviewers`, `required_status_checks` | Configured reviewer count and check presence; not proof of completed reviews or successful runs |
+| CTRL-CHG-008 | `ci_workflow` | Active workflow presence under `.github/workflows/`; not deployment reproducibility |
+
+Unreadable or unsupported settings, ambiguous protection responses, incomplete
+pagination, and unavailable bypass information become MISSING. Known absent
+settings can produce FAIL. The collector does not change repository settings.
+The policy uses its production threshold without asserting that this repository
+is a production deployment. Read the [setup and permission guide](../docs/local-github-assessment.md)
+for details and local evidence handling.
+
+The collector returns `target`, `collected_at`, `payloads`, `errors`,
+`observations`, and `limitations`. Payloads contain one repository row for each
+supported policy input. The CLI builds separate report/evidence files; there is
+no universal sensor `raw` envelope or automatic remote locker upload.
+
+## Collector and adapter status
+
+| Implementation | Status and use |
+| --- | --- |
+| [`github_assessment.py`](github_assessment.py) | Current private single-repository workflow; conservative real-data normalization |
+| [`github.py`](github.py) | Legacy GitHub/reference adapter used by `engine.run --live`; not the isolated real assessment |
+| [`terraform.py`](terraform.py) | Implemented plan JSON normalization for the reference IaC gate |
+| [`procedural.py`](procedural.py) | Implemented repository-contained nonempty-file and review-date checks; no signature/content verification |
+| Cloud / Kubernetes / code-scanning adapters | Stubs or design examples; not current live workspace collectors |
 
 ## Normalized payloads (per surface)
 
@@ -125,33 +166,24 @@ Policies: `change_mgmt.branch_protection_enforced` (CTRL-CHG-001, CTRL-CHG-002)
 
 Policies: `backup.automated_backup_enabled` (CTRL-BKP-001)
 
-## Sensor status
+## Legacy GitHub adapter
 
-| Sensor                          | Status          | Notes                                                                                         |
-| ------------------------------- | --------------- | --------------------------------------------------------------------------------------------- |
-| `github-api`                    | **implemented** | `sensors/github.py` reads live branch protection via `gh api`; `python3 -m engine.run --live` |
-| `terraform`                     | **implemented** | `sensors/terraform.py` + `scripts/iac_gate.sh` (plan JSON → Rego); CI warn-mode                |
-| `cloud-steampipe`               | stub            | Steampipe queries per provider -> payloads above (Phase 2)                                    |
-| `code-*` (semgrep/osv/gitleaks) | stub            | findings -> normalized finding JSON (Phase 3)                                                 |
-| `k8s-gatekeeper`                | stub            | Gatekeeper audit dump (Phase 2)                                                               |
-| `procedural-evidence`           | **implemented** | `sensors/procedural.py` reads `next_review_due` only. No signature check, and `document_ref` is not opened |
+The older `python3 -m sensors.github` commands write to `sensors/out/` and support
+repository or owner-level collection. The reference runner's `--live` option
+substitutes those outputs only for jobs marked `sensor: github` in
+[`engine/jobs.yaml`](../engine/jobs.yaml). Other fixture jobs, procedural inputs,
+and waiver overlays remain configured. `--org` broadens the GitHub portion to the
+origin owner's public repositories; it is not an implicit scope of a workspace
+assessment.
 
-A sensor that produces no payload for a control it owns causes the control to be
-scored `MISSING` (not-ready) — a broken sensor surfaces as falling readiness,
-never as silent green.
+Use `scripts/assess_github.py --repo OWNER/REPO` for the new real workflow, which
+keeps evidence outside Git checkouts and does not mix sample inputs. A `_source.live`
+flag is metadata, not independent proof of source authenticity.
 
-### Running the live github sensor
+## Adding a collector
 
-```bash
-python3 -m sensors.github                       # collect origin repo -> sensors/out/github.json
-python3 -m sensors.github --repo OWNER/REPO     # collect a specific repo
-python3 -m sensors.github --owner SafetyMP      # org-wide: all public repos of owner
-python3 -m sensors.github --owner SafetyMP --visibility private
-python3 -m engine.run --live                    # refresh sensor(s) then evaluate (origin repo)
-python3 -m engine.run --live --org              # org-wide: evaluate all public repos of the origin owner
-```
-
-Live evidence is tagged `_source.live: true`; `--live` swaps in the sensor
-output for any job declaring `sensor: github` in `engine/jobs.yaml`. `--org`
-broadens the change-management controls to every public repo of the owner — a
-control is met only if **all** in-scope repos comply.
+Keep collection separate from evaluation, state the target and scope explicitly,
+and normalize only facts supported by the source. Empty or unavailable evidence
+must not silently become a passing check. Add tests for permission failures,
+missing fields, malformed inputs, pagination, and secret/error redaction. Keep
+example fixtures synthetic and document the actual measurement limits.

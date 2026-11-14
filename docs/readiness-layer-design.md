@@ -1,6 +1,27 @@
 # SOC 2 / ISO 27001 Readiness Layer over Policy-as-Code
 
-**Status:** Design plus a Phase 1 reference implementation (catalog, Rego slice, sensors, scorer, locker, IaC warn gate). **Not a SOC 2 certification.** · **Engine:** OPA / Rego · **Audience:** Security engineering, GRC, audit
+**Historical design record — not the current capability reference.** The broad
+scope, schedules, production storage, and implementation-status language below
+preserve the original proposal and its early follow-up. Use the
+[current architecture](architecture.md) and [local GitHub guide](local-github-assessment.md)
+for implemented behavior and commands.
+
+| Earlier design language | Current implementation boundary |
+| --- | --- |
+| Multi-cloud, Kubernetes, and code-scanning collection | Current real workflow assesses three GitHub configuration checks only; other collectors remain stubs |
+| Continuous collection and nightly recomputation | No such scheduler is implemented by the workspace |
+| Signed procedural evidence and waivers | Reference code checks procedural file presence/dates and applies waiver metadata; signatures and approver identity are not verified |
+| Published Merkle transparency head and production custody | Reference head is a local file; no external publication, replication, or browser custody verification |
+| Signed auditor bundle | Reference packaging writes unsigned Markdown/JSON views |
+| General live readiness | Synthetic/reference and real repository scopes are separate; a score is not proof of operating effectiveness |
+
+The real repository workflow loads no sample waivers, and a workspace review note
+never changes a failed policy result. These current limits supersede any stronger
+implication in the retained design below.
+
+---
+
+**Original status:** Design plus a Phase 1 reference implementation (catalog, Rego slice, sensors, scorer, locker, IaC warn gate). **Not a SOC 2 certification.** · **Engine:** OPA / Rego · **Audience:** Security engineering, GRC, audit
 **Scope:** IaC (Terraform), Kubernetes, Cloud accounts (AWS/Azure/GCP), CI/CD & GitHub, Code (SAST/SCA/secrets)
 
 ---
@@ -429,7 +450,7 @@ This sequence avoids breaking the business on immature rules while guaranteeing 
 
 ## 15. Procedural evidence ownership (recommendation)
 
-The sensor that shipped, `sensors/procedural.py`, uses `control_id` and `next_review_due` only. It does not check a signature, and it does not open `document_ref`. The signed-manifest shape below is the original recommendation.
+Earlier implementation note (superseded): the initial sensor used `control_id` and `next_review_due` only. The current `sensors/procedural.py` also checks that `document_ref` resolves to a nonempty file within the repository; it still does not inspect content or verify signatures. The signed-manifest shape below remains the original recommendation.
 
 Procedural controls (CC1.1 policy approval, CC3.x risk review, CC7.4 IR drills, A.6.3 awareness, CC9.2 supplier review) cannot be sensed from infrastructure — they are documents + dates. They still must be policy-as-code traceable and must decay when overdue.
 

@@ -34,7 +34,7 @@ async function setReport(data,restoredNotes=null,isImported=false) {
   document.querySelector('#mode-pill').classList.toggle('real-mode',real());
   document.querySelector('.workspace-label').innerHTML=`<span class="workspace-avatar">${real()?'R':'S'}</span><span>${real()?'Repository assessment':'Sensor pack'}<span>${real()?'Local workspace':'Reference workspace'}</span></span><span class="workspace-dot"></span>`;
   document.querySelector('.sidebar-bottom').innerHTML=`<div class="sample-mark"><span></span>${real()?'Real repository results':'Interactive sample'}</div><p>${real()?'Evidence stays local.<br>Notes stay in this tab.':'Real policy checks.<br>Synthetic source data.'}</p><a href="${repo}" target="_blank" rel="noreferrer">View source repository ↗</a>`;
-  document.title=real()?`${report.target.repository} · Local assessment`:'SOC-2 · Readiness workspace';
+  document.title=real()?`${report.target.repository} · Local assessment`:'SOC-2 readiness workspace · Interactive sample';
   render();
 }
 function header(title,description,eyebrow='READINESS AT A GLANCE',extra='') {return `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div><div class="heading-actions">${extra}<button class="button secondary" data-action="export">${icon('down')} Export review</button></div></div>`;}

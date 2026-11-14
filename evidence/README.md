@@ -1,53 +1,64 @@
-# Evidence locker (L5)
+# Evidence files and reference locker
 
-Immutable, tamper-evident store for evidence records. One interface, two targets
-(see `docs/readiness-layer-design.md §10`):
+The current [real GitHub assessment](../docs/local-github-assessment.md) writes
+private `report.json` and sanitized `evidence.json` files outside Git checkouts.
+It does not use Docker, the legacy locker, sample waivers, or framework packaging.
+The local workspace reads only an explicitly selected report or exported review;
+review notes never change measured results.
 
-| Target               | Store                                          | Status              |
-| -------------------- | ---------------------------------------------- | ------------------- |
-| **Local/dev**        | MinIO (object-lock) via `docker-compose.yml`   | **wired (Phase 0)** |
-| **Prod**             | cloud object-lock bucket + cross-cloud replica | stub (Phase 4)      |
-| **Transparency log** | Merkle append-log, head hash published         | stub (Phase 4)      |
+This directory contains optional reference evidence utilities retained from the
+original sensor pack. They are not a production evidence-custody system.
 
-## Local usage
+## Reference components
+
+| Component | Actual behavior | Limit |
+| --- | --- | --- |
+| [`engine/locker.py`](../engine/locker.py) | Builds fingerprinted records and writes JSON by control/evidence ID; optional demo MinIO push | `get()` reads a local JSON file; it does not fetch a remote object version or verify a fingerprint |
+| [`log.py`](log.py) | Builds and verifies an in-memory append-only hash chain | The reference runner writes the batch head to a local file; no external transparency service publishes or witnesses it |
+| [`packaging.py`](packaging.py) | Renders framework-oriented Markdown and JSON from latest local reference records | Outputs are unsigned; labels such as “Auditor Package” or “Statement of Applicability” are reference views, not an auditor opinion or a complete ISMS |
+| [`docker-compose.yml`](../docker-compose.yml) | Configures a development S3-compatible locker with versioning and GOVERNANCE retention | Demo credentials and local configuration do not establish production immutability, replication, or custody |
+
+## Optional development locker
+
+The workspace does not require this service. For an isolated local experiment,
+inspect the Compose file and its network bindings before starting it:
 
 ```bash
-docker compose up -d                       # starts MinIO + creates object-locked `evidence` bucket
-# endpoint: http://localhost:9000  ak/sk: minioadmin/minioadmin
-# bucket:   evidence               object-lock: governance 365d
+docker compose up -d
+python3 -m engine.run --push
 ```
 
-## Interface (target contract)
+The Compose configuration creates the `evidence` bucket with a 365-day governance
+retention default and a limited `evidence-writer` account. The current Python push
+adapter nevertheless uses the demo root account, not that limited writer. Root
+credentials are well-known development values and must not be used for real evidence
+or a shared deployment. Production storage and cross-cloud replication remain
+unimplemented design work.
 
-The locker client exposes three operations:
+## Local packaging
 
-- `put(record)` — write one evidence record; returns `fingerprint` (sha256) + log entry index. Object-lock (GOVERNANCE) prevents the version from being **purged or overwritten** within retention — it does _not_ prevent a delete marker (see "Smoke-test findings").
-- `get(evidence_id)` — fetch a record + verify its fingerprint.
-- `package(framework)` — emit a signed bundle: SOC 2 criteria checklist or ISO 27001:2022 SoA, each criterion linked to its latest PASS/EXCEPTION records. **Implemented** — `python3 -m evidence.packaging`.
+```bash
+python3 -m evidence.packaging
+```
 
-## Integrity invariant
+By default this reads records from `evidence/out/`, applies reference expiry and
+waiver overlays, and writes Markdown/JSON under `evidence/packages/`. It is a
+separate data format from workspace review exports and does not accept the private
+GitHub workflow's `evidence.json` as a drop-in locker directory. Keep real evidence
+out of the public repository and Pages payload.
 
-Every record carries a truthful `collected_at`, a content `fingerprint`, and a
-transparency-log entry. The Merkle head hash is published so any post-hoc
-tampering is externally detectable. **Records are never backdated** — stale
-evidence decays to EXPIRED via the nightly recompute (§8.6), it is not
-re-stamped.
+## Integrity boundaries
 
-## Integrity hardening (implemented)
+Record fingerprints commit to payload bytes and the recorded status/findings.
+An independently retained hash can help detect later changes, but the local
+reference hash head alone is not external authentication or immutable custody.
+`LockerClient.get()` does not recompute it, and the browser does not verify it.
+There is no scheduled collection or nightly recomputation service in this workspace;
+expiry overlays are applied when the reference commands run.
 
-The original smoke test (2026-07-11) found a gap: with versioning on,
-`DeleteObject` (no versionId) adds a **delete marker** that obscures the
-"current" view without purging the retained version. Three controls now close
-it — prevent, detect, retrieve:
-
-| Control                                  | Implementation                                                                                                       | Verified                                                                                          |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Object-lock GOVERNANCE 365d + versioning | bucket created with WORM                                                                                             | retained version can't be purged without bypass (`"is WORM protected and cannot be overwritten"`) |
-| **deny-DeleteObject** _(prevent)_        | `evidence-writer` IAM user in `docker-compose` init: PutObject/GetObject only, Deny DeleteObject                     | writer PUT succeeds; delete-marker attempt → **DENIED** ("Access Denied")                         |
-| **Merkle append log** _(detect)_         | `evidence/log.py`; `run.py` appends each record fingerprint and publishes the head to `evidence/out/merkle_head.txt` | tampering with any record's content/order changes every subsequent head; 8 unit tests             |
-| **Version-pinned get** _(retrieve)_      | `locker.get(control_id, evidence_id)` reads by pin, never the moveable current pointer                               | a stray delete marker cannot hide a record                                                        |
-
-The published Merkle head makes post-hoc tampering externally detectable — any
-divergence between a record's committed fingerprint and the chain breaks
-verification. Records are never backdated; stale evidence decays to EXPIRED via
-the nightly recompute (§8.6), it is not re-stamped.
+Historical July 2026 smoke tests explored GOVERNANCE retention, delete-marker
+behavior, and a delete-denying writer policy. Those observations motivated the
+reference configuration; they are not fresh verification of any current deployment.
+The earlier [readiness-layer design](../docs/readiness-layer-design.md) also describes
+signed bundles and published transparency logs as planned capabilities. Consult the
+[current architecture](../docs/architecture.md) for what is implemented today.

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142e2b">
+  <title>SOC-2 readiness workspace · Local GitHub assessments and policy findings</title>
+  <meta name="description" content="An open-source Python and Rego workspace for local GitHub configuration assessments, evidence inspection, and review notes. Explore a separate synthetic demo.">
+  <link rel="canonical" href="https://safetymp.github.io/SOC-2/about.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SOC-2 readiness workspace">
+  <meta property="og:title" content="SOC-2 readiness workspace · Understand the evidence. Plan the next fix.">
+  <meta property="og:description" content="Assess GitHub configuration locally, inspect scoped policy findings, and export review notes. Credentials and real evidence stay on your computer.">
+  <meta property="og:url" content="https://safetymp.github.io/SOC-2/about.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SOC-2 readiness workspace · Local GitHub assessments">
+  <meta name="twitter:description" content="Open-source Python/Rego checks with transparent findings and a private local review workflow. The public demo uses synthetic evidence.">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./discovery.css">
+  <link rel="sitemap" type="application/xml" href="./sitemap.xml">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "SOC-2 readiness workspace",
+    "description": "An open-source workspace for local GitHub configuration assessments, policy findings, evidence inspection, and review notes, with a separate synthetic demonstration.",
+    "url": "https://safetymp.github.io/SOC-2/about.html",
+    "codeRepository": "https://github.com/SafetyMP/SOC-2",
+    "programmingLanguage": ["Python", "Rego", "JavaScript"],
+    "runtimePlatform": ["Python 3.11 or later", "Open Policy Agent", "Web browser"],
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "isAccessibleForFree": true
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to project overview</a>
+  <header class="site-header">
+    <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">s₂</span><span>SOC-2<span class="brand-caption">READINESS WORKSPACE</span></span></a>
+    <nav aria-label="Project navigation">
+      <a href="./">Try the sample</a>
+      <a href="https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md">Local setup</a>
+      <a href="https://github.com/SafetyMP/SOC-2">Source code <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+  <main id="main" tabindex="-1">
+    <section class="hero" aria-labelledby="project-title">
+      <div>
+        <p class="eyebrow">OPEN SOURCE · PYTHON + REGO · LOCAL EVIDENCE</p>
+        <h1 id="project-title">SOC-2 readiness workspace</h1>
+        <p class="hero-line">Understand the evidence.<br>Plan the next fix.</p>
+        <p class="lede">Turn GitHub configuration checks into findings you can inspect and action plans you can keep. Assess one repository locally, or learn the workflow with a clearly labeled synthetic sample.</p>
+        <div class="actions"><a class="button" href="./">Explore the sample <span aria-hidden="true">→</span></a><a class="button secondary" href="https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md">Assess your repository</a></div>
+      </div>
+      <aside class="scope-card" aria-label="Assessment boundaries">
+        <p class="eyebrow">A VISIBLE SCOPE</p>
+        <div class="scope-row"><strong>3</strong><span>GitHub configuration checks<br>in a real local assessment</span></div>
+        <div class="scope-row"><strong>34</strong><span>other catalog controls<br>remain outside that scope</span></div>
+        <p>A passing check describes the observed settings. It does not establish complete SOC 2 readiness or operating effectiveness.</p>
+      </aside>
+    </section>
+
+    <section aria-labelledby="workflows-title">
+      <div class="section-heading"><p class="eyebrow">CHOOSE YOUR STARTING POINT</p><h2 id="workflows-title">One workspace. Two distinct workflows.</h2></div>
+      <div class="workflow-grid">
+        <article class="card"><p class="label">PUBLIC SAMPLE</p><h3>Explore without connecting a repository</h3><p>The demo runs with synthetic fixtures. It presents 20 evaluated catalog controls: 11 technical checks and 9 procedural checks. The other 17 are not evaluated.</p><p>Inspect findings, add a plan, and export a review. The public demo accepts fixture reports only.</p><a href="./">Open the interactive sample →</a></article>
+        <article class="card real"><p class="label">REAL REPOSITORY · LOCAL ONLY</p><h3>Assess your GitHub configuration</h3><p>The local collector makes read-only GitHub API requests for one repository. It uses your existing GitHub CLI authentication and writes private report and evidence files outside Git checkouts.</p><p>Open the report in the loopback-only workspace. Real notes stay in tab memory until you export them.</p><a href="https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md">Follow the local assessment guide →</a></article>
+      </div>
+    </section>
+
+    <section class="measurements" aria-labelledby="checks-title">
+      <div class="section-heading"><p class="eyebrow">KNOW WHAT A RESULT MEANS</p><h2 id="checks-title">Three checks, with explicit limits.</h2></div>
+      <div class="checks-grid">
+        <article><p class="control-id">CTRL-CHG-001</p><h3>Branch protection and force-push settings</h3><p>Inspect the default branch’s protection settings. A pass does not prove every change used a pull request or that privileged bypass is impossible.</p></article>
+        <article><p class="control-id">CTRL-CHG-002</p><h3>Required reviews and status checks</h3><p>Check the configured approving-review count and required checks. A pass does not prove reviews happened or checks succeeded for each change.</p></article>
+        <article><p class="control-id">CTRL-CHG-008</p><h3>Active GitHub Actions workflow</h3><p>Observe an active workflow under <code>.github/workflows/</code>. Its presence does not prove deployment reproducibility or successful runs.</p></article>
+      </div>
+      <p class="boundary-note">Unreadable or unsupported settings are <strong>missing evidence</strong>. Unevaluated controls never count as passing. Planning notes do not change a policy verdict or create a waiver.</p>
+    </section>
+
+    <section class="local-start" aria-labelledby="local-title">
+      <div><p class="eyebrow">FROM YOUR OWN CHECKOUT</p><h2 id="local-title">Collect. Inspect. Plan. Reassess.</h2><p>Install Python, PyYAML, OPA, and the GitHub CLI, then follow the setup guide. Use the private report path printed by the first command.</p><p>To resume a saved review and its notes on startup, pass the exported <code>review.json</code> to the same <code>--report</code> option. Failed results stay failed.</p></div>
+      <div class="command-card"><p>Assess one repository</p><pre><code>python3 scripts/assess_github.py --repo OWNER/REPO</code></pre><p>Open your report or exported review locally</p><pre><code>python3 scripts/serve_workspace.py \
+  --report /absolute/path/report.json</code></pre><a href="https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md">Setup, permissions, and privacy →</a></div>
+    </section>
+
+    <section class="resources" aria-labelledby="resources-title">
+      <div class="section-heading"><p class="eyebrow">OPEN AND INSPECTABLE</p><h2 id="resources-title">For people and coding agents.</h2></div>
+      <p>Start with the current workflow, inspect the implementation, and keep the scope of each result visible. Historical design documents are context, not a claim that every proposed feature exists.</p>
+      <ul class="resource-list">
+        <li><a href="https://github.com/SafetyMP/SOC-2/blob/main/README.md">Project README</a><span>Purpose, quick start, and scope</span></li>
+        <li><a href="https://github.com/SafetyMP/SOC-2/blob/main/docs/README.md">Documentation map</a><span>Current guides and historical design context</span></li>
+        <li><a href="https://github.com/SafetyMP/SOC-2/blob/main/CONTRIBUTING.md">Contributing guide</a><span>Development and verification</span></li>
+        <li><a href="https://github.com/SafetyMP/SOC-2/blob/main/AGENTS.md">Agent instructions</a><span>Repository commands and evidence boundaries</span></li>
+        <li><a href="./llms.txt">Machine-readable project index</a><span>A concise guide to public sources</span></li>
+        <li><a href="https://github.com/SafetyMP/SOC-2/blob/main/SECURITY.md">Security policy</a><span>Local-data boundaries and private reporting</span></li>
+      </ul>
+    </section>
+    <p class="scope-disclaimer">SOC-2 is an open-source readiness workspace and policy/sensor pack. It is not a SOC 2 Type I or Type II report, CPA opinion, certification, or a replacement for an audit.</p>
+  </main>
+  <footer><span>Apache-2.0 · <a href="https://github.com/SafetyMP/SOC-2">SafetyMP/SOC-2</a></span><span><a href="./">Interactive sample</a> · <a href="./sitemap.xml">Sitemap</a></span></footer>
+</body>
+</html>

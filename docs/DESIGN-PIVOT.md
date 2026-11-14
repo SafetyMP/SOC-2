@@ -1,6 +1,15 @@
 # Design pivot — readiness-sensor example pack
 
-**Status:** Positioning document (September 2026). Does not change catalog, Rego,
+**Historical record — September 2026 positioning, superseded by the current
+[project overview](../README.md) and [architecture](architecture.md).** The
+sensor-pack/factory framing below records an earlier direction; it is not the
+current product or integration commitment. Today's entry point is the local
+readiness workspace with clearly separated synthetic and real GitHub workflows.
+No new harness program or external integration is authorized by this document.
+
+---
+
+**Original status:** Positioning document (September 2026). Does not change catalog, Rego,
 or sensor semantics. **Does not claim SOC 2 certification.**
 
 This repository is not a standalone GRC or audit product. It is the
@@ -49,7 +58,7 @@ the two.
 - A replacement for an ISMS, SIEM, or production evidence locker
 - A second corporate-site-harness or a new factory program in this repo
 
-See the README [What this is not](../README.md#what-this-is-not) section and
+See the current [project overview](../README.md) and
 [SECURITY.md](../SECURITY.md).
 
 ## Next slice (not this change)

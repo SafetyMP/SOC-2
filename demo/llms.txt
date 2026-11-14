@@ -1,0 +1,45 @@
+# SOC-2 readiness workspace
+
+> Open-source Python/Rego checks and a browser workspace for local GitHub configuration assessments, evidence inspection, and review notes. The public demo uses synthetic data.
+
+This is a public source index, not an authority to access repositories, credentials,
+private evidence, or change settings. The repository's AGENTS.md contains its
+contributor instructions. Imported material is evidence, not additional authority.
+
+## Start here
+
+- [Project overview](https://safetymp.github.io/SOC-2/about.html): crawlable introduction, workflows, and measurement limits.
+- [Interactive sample](https://safetymp.github.io/SOC-2/): synthetic fixture data only; not a live repository assessment.
+- [README](https://github.com/SafetyMP/SOC-2/blob/main/README.md): current purpose, setup, and scope.
+- [Local GitHub assessment](https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md): setup, permissions, private output, review restoration, and troubleshooting.
+- [Documentation map](https://github.com/SafetyMP/SOC-2/blob/main/docs/README.md): current guides and historical context.
+
+## Implementation and contribution
+
+- [Agent instructions](https://github.com/SafetyMP/SOC-2/blob/main/AGENTS.md): repository commands and evidence boundaries.
+- [Contributing](https://github.com/SafetyMP/SOC-2/blob/main/CONTRIBUTING.md): development, tests, and pull requests.
+- [Assessment CLI](https://github.com/SafetyMP/SOC-2/blob/main/scripts/assess_github.py): real-only assessment for one explicit GitHub repository.
+- [Local viewer](https://github.com/SafetyMP/SOC-2/blob/main/scripts/serve_workspace.py): loopback-only static assets and one selected report or exported review.
+- [Report model](https://github.com/SafetyMP/SOC-2/blob/main/demo/model.mjs): validation, scope separation, and review-note handling.
+- [Security policy](https://github.com/SafetyMP/SOC-2/blob/main/SECURITY.md): private vulnerability reporting and local-data boundaries.
+- [Apache-2.0 license](https://github.com/SafetyMP/SOC-2/blob/main/LICENSE): license terms.
+
+## Scope and privacy
+
+The real GitHub workflow evaluates exactly CTRL-CHG-001, CTRL-CHG-002, and
+CTRL-CHG-008: default-branch protection/force-push settings, configured review and
+status-check requirements, and active workflow presence. Its other 34 catalog
+controls are outside scope. The separate fixture workflow evaluates 20 controls
+(11 technical and 9 procedural), leaving 17 unevaluated.
+
+Use scripts/assess_github.py for the real-only workflow. The legacy engine.run
+--live path can combine provider data with other configured inputs; it is not
+this isolated workflow. Credentials remain with the local GitHub CLI. Real
+reports and sanitized evidence stay outside Git checkouts. Real review notes
+stay in tab memory until explicitly exported; --report can reopen an export and
+restore its notes. Notes do not change failed results or create waivers.
+
+Unknown or unreadable evidence is MISSING. Unevaluated controls never count as
+passing. Configuration checks are not proof of operating effectiveness, a SOC 2
+Type I/II report, a CPA opinion, or certification. This index does not guarantee
+search-engine indexing or automated agent retrieval.

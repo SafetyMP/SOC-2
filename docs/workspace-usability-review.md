@@ -1,5 +1,14 @@
 # First-use review and fixes
 
+**Historical usability record — first-use fixes, November 2026.** These are the
+observations and checks from that delivery, not current test totals or customer
+engagement measurements. The current workspace also has a private real-repository
+flow and can restore an exported review directly with `--report`. Real notes stay
+in tab memory; sample notes may use browser-local storage. See the
+[current architecture](architecture.md) and [workspace guide](../demo/README.md).
+
+---
+
 Reviewed the live demo on November 14, 2026 by walking through the sample as a
 new visitor. This is a task-based usability inspection, not a customer study or
 proof of improved engagement. An independent read-only source review supplemented

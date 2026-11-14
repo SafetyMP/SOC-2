@@ -1,5 +1,15 @@
 # Readiness workspace redesign
 
+**Historical delivery record — initial fixture-only workspace, November 2026.**
+The scope, observations, verification counts, and deployment sequence below are
+retained for provenance. The workspace now also supports private real GitHub
+assessments and exported-review restoration; Pages deploys from `main` through
+GitHub Actions. Use the [current architecture](architecture.md),
+[local assessment guide](local-github-assessment.md), and [workspace guide](../demo/README.md)
+for current behavior.
+
+---
+
 ## Problem and design hypothesis
 
 The repository had a policy/sensor engine and a terminal report, but no browser

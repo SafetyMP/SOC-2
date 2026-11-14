@@ -1,27 +1,20 @@
-<!-- Thanks for contributing! Provide a short summary above. -->
+## Problem and resulting behavior
 
-## Summary
+<!-- Explain the concrete problem and what a user or contributor can do after this change. Link a public issue if relevant. -->
 
-<!-- What does this change do, and why? Reference an issue if applicable. -->
+## Validation
 
-## Change type
+<!-- List commands actually run and their outcomes. Include browser checks for changed interactions. State any material checks not run and why. -->
 
-- [ ] feat — new capability
-- [ ] fix — bug fix
-- [ ] refactor — no behavior change
-- [ ] docs — documentation only
-- [ ] test — tests only
-- [ ] chore — tooling, deps, CI
+## Scope and evidence
 
-## Checklist
+- [ ] `./scripts/verify.sh` passes, or the validation section identifies the exact limitation.
+- [ ] Meaningful regression coverage is included for changed behavior where appropriate.
+- [ ] No credentials, real reports/review exports, or private repository/customer evidence are included.
+- [ ] Real and synthetic data stay distinct; missing or unevaluated evidence does not become passing.
+- [ ] Review notes do not change policy results or create waivers.
+- [ ] Documentation describes implemented scope without certification or audit-opinion claims.
 
-- [ ] `./scripts/verify.sh` is green locally.
-- [ ] New behavior is covered by a test where applicable.
-- [ ] No secrets, live credentials, or real customer evidence staged.
-- [ ] Sensor-pack posture preserved (README / SECURITY / DESIGN-PIVOT do not claim certification).
-- [ ] No new corporate-site-harness program added (CEO workflow; see docs/DESIGN-PIVOT.md).
+<!-- For changes to permissions, collection, imports, serving, or deployment, explain the impact on the local data boundary. -->
 
-## Security
-
-If this change fixes a security vulnerability, **stop** and follow
-[SECURITY.md](../SECURITY.md) instead of opening a public PR.
+For an undisclosed security vulnerability, follow [SECURITY.md](https://github.com/SafetyMP/SOC-2/blob/main/SECURITY.md) before opening a public PR.
