@@ -229,3 +229,12 @@ test('local workspace detection allows only HTTP(S) loopback hosts',()=>{
   for(const host of ['127.0.0.2','0.0.0.0','dev.localhost','192.168.1.2'])assert.equal(isLocalWorkspace({hostname:host,protocol:'http:'}),false);
   assert.equal(isLocalWorkspace({hostname:'localhost'}),false);assert.equal(isLocalWorkspace(null),false);
 });
+
+test('three-month pilot includes setup, break-even and slower collection', async () => {
+  const {pilotHours} = await import('./model.mjs');
+  const inputs = {repositories: 8, manualMinutes: 25, collectorMinutes: 10, setupHours: 4};
+  assert.deepEqual(pilotHours(inputs), {manual: 10, collector: 8, saved: 2, threshold: 10});
+  assert.equal(pilotHours({...inputs, collectorMinutes: 15}).saved, 0);
+  assert.equal(pilotHours({...inputs, collectorMinutes: 30}).saved, -6);
+  for (const repositories of [0, -1, 0.5, NaN]) assert.equal(pilotHours({...inputs, repositories}), null);
+});

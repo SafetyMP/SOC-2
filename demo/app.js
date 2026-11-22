@@ -1,4 +1,4 @@
-import {ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
+import {pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
 
 const paths={grid:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',flag:'M5 21V3m0 1h13l-3 5 3 5H5',shield:'M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6z M8 12l3 3 5-6',file:'M14 3H5v18h14V8z M14 3v5h5 M8 12h8 M8 16h6',layers:'M12 3l9 5-9 5-9-5z M3 12l9 5 9-5 M3 16l9 5 9-5',arrow:'M5 12h14 M13 6l6 6-6 6',down:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5',search:'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',book:'M12 5v16 M12 5C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-3-1-6-2-10 1',check:'M5 12l4 4L19 6',close:'M6 6l12 12 M6 18L18 6',clock:'M12 8v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',key:'M14 4a5 5 0 1 1-3 9L4 20H1v-3l8-8a5 5 0 0 1 5-5z',info:'M12 11v6 M12 7h.01 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',refresh:'M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 2 M4 17l2 2a8 8 0 0 0 13-2',code:'M8 5l-6 7 6 7 M16 5l6 7-6 7',external:'M14 3h7v7 M21 3L10 14 M10 3H3v18h18v-7'};
 const icon=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.shield}"/></svg>`;
@@ -38,9 +38,78 @@ async function setReport(data,restoredNotes=null,isImported=false) {
   render();
 }
 function header(title,description,eyebrow='READINESS AT A GLANCE',extra='') {return `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div><div class="heading-actions">${extra}<button class="button secondary" data-action="export">${icon('down')} Export review</button></div></div>`;}
-function nav() {document.querySelector('#navigation').innerHTML=navItems.map(([id,i,label])=>`<a href="#${id}" class="${page===id?'active':''}" ${page===id?'aria-current="page"':''}>${icon(i)}<span>${label}</span>${id==='attention'?`<span class="count">${report.controls.filter(c=>ATTENTION.includes(c.status)).length}</span>`:''}</a>`).join('');document.querySelector('#breadcrumb').textContent=navItems.find(n=>n[0]===page)[2];}
+function visibleNavItems() {return canShowCase() ? [['case','book','Release case'], ...navItems] : navItems;}
+function nav() {document.querySelector('#navigation').innerHTML=visibleNavItems().map(([id,i,label])=>`<a href="#${id}" class="${page===id?'active':''}" ${page===id?'aria-current="page"':''}>${icon(i)}<span>${label}</span>${id==='attention'?`<span class="count">${report.controls.filter(c=>ATTENTION.includes(c.status)).length}</span>`:''}</a>`).join('');document.querySelector('#breadcrumb').textContent=visibleNavItems().find(n=>n[0]===page)[2];}
 function row(c) {const note=notes[c.id];const saved=note && (note.owner||note.note||reviewProgress(note)!=='Not started');return `<tr><td><div class="control-title-row"><span class="control-icon">${icon(c.kind==='technical'?'shield':'file')}</span><div><button class="control-title" data-control="${c.id}">${h(controlTitle(c))}</button><span class="control-id">${c.id}</span>${saved?`<div class="plan-summary"><span class="plan-badge">${icon('check')} Plan saved · ${h(reviewProgress(note))}</span>${note.owner?`<span>${h(note.owner)}</span>`:''}${note.note?`<span class="plan-excerpt">${h(note.note.length>110?note.note.slice(0,107)+'…':note.note)}</span>`:''}</div>`:''}</div></div></td><td class="domain-col">${h(domainLabel(c.domain))}</td><td>${status(c)}</td><td class="criticality-col"><span class="criticality ${c.criticality<3?'medium':''}"><i aria-hidden="true"><b></b><b></b><b></b></i>${c.criticality===3?'High':c.criticality===2?'Medium':'Low'}</span></td><td><button class="row-open" data-control="${c.id}" aria-label="Inspect ${c.id}">${icon('arrow')}</button></td></tr>`;}
 function table(controls) {return `<div class="table-wrap"><table class="control-table"><thead><tr><th scope="col">Control</th><th scope="col" class="domain-col">Domain</th><th scope="col">Result</th><th scope="col" class="criticality-col">Priority</th><th scope="col"><span class="muted" aria-label="Actions"></span></th></tr></thead><tbody>${controls.map(row).join('')}</tbody></table></div>`;}
+const requests = {
+  settings: {
+    label: 'Settings at collection', title: 'Attach the settings record.',
+    finding: 'Both fixture repositories require two reviews and status checks. The platform owner can share that observation with the collection date and the repository names.',
+    next: 'Keep the underlying record with the policy result so another reviewer can repeat the check.'
+  },
+  release: {
+    label: 'One production release', title: 'Request the pull request.',
+    finding: 'A rule describes what GitHub was configured to enforce. The fixture contains no release identifier, approving reviews or merge history.',
+    next: 'Ask the release owner to link the deployed commit, its merged pull request, dated approvals and check results. Reconcile any bypass before responding.'
+  },
+  quarter: {
+    label: 'Changes throughout the quarter', title: 'Keep the period request open.',
+    finding: 'A settings snapshot cannot establish which changes shipped during the quarter or how each was approved.',
+    next: 'Ask the change owner for the release population, the period boundaries, linked approval records and documented exceptions. Agree the testing scope with the reviewer.'
+  }
+};
+
+let selectedRequest = 'release';
+const pilotAssumptions = {repositories: 8, manualMinutes: 25, collectorMinutes: 10, setupHours: 4};
+const canShowCase = () => !real() && !imported && new URLSearchParams(location.search).get('local') !== '1';
+function caseResponse() {
+  const request = requests[selectedRequest];
+  return `<h3>${request.title}</h3><p>${request.finding}</p><p><strong>Next step.</strong> ${request.next}</p>`;
+}
+
+function pilotResult() {
+  const result = pilotHours(pilotAssumptions);
+  if (!result) return 'Enter valid values in all four fields to calculate the comparison.';
+  const format = value => value.toLocaleString('en-US', {maximumFractionDigits: 2});
+  const balance = result.saved === 0 ? 'Both options use the same time.' :
+    `The collector takes ${format(Math.abs(result.saved))} ${Math.abs(result.saved) === 1 ? 'hour' : 'hours'} ${result.saved > 0 ? 'less' : 'more'}.`;
+  return `<strong>${balance}</strong> Manual collection uses ${format(result.manual)} hours over three months. The local pilot uses ${format(result.collector)}, including setup. Recovering setup requires saving ${format(result.threshold)} minutes per repository per month.`;
+}
+
+function caseView() {
+  const control = report.controls.find(item => item.id === 'CTRL-CHG-002');
+  const input = (key, label, min, max) => `<label>${label}<input data-pilot="${key}" type="number" min="${min}" max="${max}" step="1" required value="${Number.isFinite(pilotAssumptions[key]) ? pilotAssumptions[key] : ''}"></label>`;
+  const source = sourceURL(report.source_commit,control.source.payload);
+  return `<article class="change-case">
+    <header class="case-head"><div class="case-intro"><p class="eyebrow">Change management · Synthetic case</p>
+      <h1>Who approved the release?</h1>
+      <p>A customer’s vendor-risk reviewer asks who approved a production release. You lead compliance at the service provider. Your platform owner sends a passing branch-settings check. What can you tell the customer?</p></div>
+      <div class="case-record"><p class="eyebrow">Recorded fixture</p><h2>Required reviews</h2>
+        <div class="case-record-line"><code>core-service</code><b>2</b></div>
+        <div class="case-record-line"><code>infra-modules</code><b>2</b></div>
+        <p>${status(control)} <span>CTRL-CHG-002</span></p>
+        <button class="button secondary" data-control="CTRL-CHG-002">Inspect policy result</button>
+      </div></header>
+    <section class="case-section"><h2>What did the customer request?</h2>
+      <p>Keep the same record and change the scope of the question.</p>
+      <label class="case-select">Evidence requested<select id="case-request">${Object.entries(requests).map(([key, entry]) => `<option value="${key}" ${selectedRequest === key ? 'selected' : ''}>${entry.label}</option>`).join('')}</select></label>
+      <div id="case-response" class="case-response" aria-live="polite">${caseResponse()}</div>
+      <p class="case-links">${source ? `<a href="${h(source)}">Read the two fixture records</a> · ` : ''}<a href="#overview">Explore the assessment workspace</a></p>
+    </section>
+    <section class="case-section"><p class="eyebrow">Business case</p><h2>Would you fund three months of local collection?</h2>
+      <p>As compliance lead, you sponsor the pilot and decide whether to expand it. The platform control owner times two ways of gathering the same three GitHub settings checks each month. Include collection, review and follow-up in both estimates. Release approvals still need their own records.</p>
+      <div class="case-inputs">${input('repositories','Repositories',1,10000)}${input('manualMinutes','Manual collection and review minutes per repository',0,10000)}${input('collectorMinutes','Collector and review minutes per repository',0,10000)}${input('setupHours','One-time setup hours',0,10000)}</div>
+      <div class="case-response" id="pilot-result" aria-live="polite">${pilotResult()}</div>
+      <p>These starting values are illustrative. Use the same repositories for both methods. At the end of month three, ask a second reviewer to retrieve the dated source for each observation and identify every unreadable setting. Expand only if the team recovers its setup time, every observation remains traceable and all evidence gaps are visible. Otherwise keep manual collection for the affected repositories.</p>
+    </section>
+    <section class="case-section case-sources"><h2>How to interpret the evidence</h2>
+      <p>GitHub documents how review counts, status checks and bypass permissions affect protected branches. <a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches">GitHub branch protection</a></p>
+      <p>NIST’s assessment guidance distinguishes examining records, interviewing people and testing controls. The evidence needed depends on the assessment objective. <a href="https://csrc.nist.gov/pubs/sp/800/53/a/r5/final">NIST SP 800-53A Rev. 5</a></p>
+      <p>Service-organization management makes the assertion. An independent service auditor tests controls and reports the results. Customers use the report to assess supplier risk. The compliance team in this case prepares the underlying records. <a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA’s illustrative Type 2 report</a> · <a href="https://cloud.google.com/security/compliance/soc-2">How Google Cloud customers use the report</a></p>
+    </section></article>`;
+}
+
 function overview() {
   const s=report.summary, attention=prioritySort(report.controls.filter(c=>ATTENTION.includes(c.status))), wired=report.controls.filter(c=>c.status!=='UNWIRED');
   const tech=wired.filter(c=>c.kind==='technical').length, proc=wired.length-tech;
@@ -65,7 +134,7 @@ function guideView() {return header('From a check to a confident next step.','A 
 function repositoryBanner(){return real()?`<section class="assessment-banner" aria-label="Real repository assessment"><div><strong>Real repository · ${h(report.target.repository)}</strong><span>${h(report.target.branch||'Branch unavailable')} · ${report.target.commit?h(report.target.commit.slice(0,12)):'Commit unavailable'} · ${h(report.target.visibility||'Visibility unavailable')}</span></div><p>3 GitHub checks in scope · ${report.summary.unwired_count} catalog controls outside scope. Evidence and notes stay local; notes are lost on reload unless exported.</p>${report.assessment.incomplete?'<p class="collection-warning">Collection incomplete. Unreadable settings are missing evidence, not passing checks.</p>':''}</section>`:'';}
 function workflowPanel(){return `<section class="panel real-workflow"><div class="eyebrow">YOUR REPOSITORY · ON YOUR COMPUTER</div><h2>Assess a real GitHub repository</h2><p>Run from a local checkout of this project. Requires Python, PyYAML, OPA, and the GitHub CLI. Use your existing <code>gh</code> login, or sign in locally with <code>gh auth login --hostname github.com</code>.</p><ol><li><strong>Collect and assess one repository.</strong><pre>python3 scripts/assess_github.py --repo OWNER/REPO</pre><p>The command prints the private report path and the command to open it. GitHub requests are read-only. Credentials remain with your local GitHub CLI.</p></li><li><strong>Open the local workspace.</strong><pre>python3 scripts/serve_workspace.py --report /absolute/path/report.json</pre><p>Open the localhost URL printed in your terminal. Reports and sanitized evidence stay outside the checkout; the public demo does not accept real reports.</p></li><li><strong>Review, fix, and rerun.</strong><p>Inspect branch protection, required reviews and status checks, and active workflow presence. These three checks do not establish deployment reproducibility or complete SOC 2 readiness. Unreadable settings appear as missing evidence. Export a review to keep your notes.</p></li></ol><a class="text-button" href="${repo}/blob/main/docs/local-github-assessment.md" target="_blank" rel="noreferrer">Setup, permissions & privacy ${icon('external')}</a></section>`;}
 function showWorkflow(){help.innerHTML=`<div class="help-body"><div class="help-header"><span class="eyebrow">LOCAL ASSESSMENT</span><button class="close-button" data-action="close-help" aria-label="Close local assessment instructions">${icon('close')}</button></div><h2 id="help-title">Bring your own repository.</h2>${workflowPanel()}</div>`;help.showModal();}
-function render() {filters=filtersForPage(filters,page);nav();main.innerHTML=repositoryBanner()+(page==='overview'?overview():['attention','controls'].includes(page)?listView():page==='evidence'?evidenceView():guideView());if(['attention','controls'].includes(page))renderResults();}
+function render() {if(page==='case'&&!canShowCase())page='overview';filters=filtersForPage(filters,page);nav();main.innerHTML=repositoryBanner()+(page==='case'?caseView():page==='overview'?overview():['attention','controls'].includes(page)?listView():page==='evidence'?evidenceView():guideView());if(['attention','controls'].includes(page))renderResults();}
 function navigate(target) {if(location.hash===`#${target}`){page=target;render();}else location.hash=target;}
 function openDetail(id) {
   const c=report.controls.find(c=>c.id===id);if(!c)return;
@@ -120,6 +189,17 @@ document.addEventListener('click',async event=>{
   }
   if(action==='confirm-reset'){if(real())realReviews.delete(storageKey);if(!real()){try{localStorage.removeItem(storageKey);}catch{}}imported=false;help.close();await setReport(sample);navigate('overview');notify('Current report’s notes cleared. Sample restored.');}
 });
+document.addEventListener('change',event=>{
+  if(event.target.id !== 'case-request')return;
+  selectedRequest = event.target.value;
+  document.querySelector('#case-response').innerHTML = caseResponse();
+});
+document.addEventListener('input',event=>{
+  const field = event.target;
+  if(!field.matches('[data-pilot]'))return;
+  pilotAssumptions[field.dataset.pilot] = field.validity.valid ? field.valueAsNumber : NaN;
+  document.querySelector('#pilot-result').innerHTML = pilotResult();
+});
 document.addEventListener('input',e=>{if(e.target.id==='search'){filters.query=e.target.value;renderResults();}});
 document.addEventListener('change',e=>{if(['status-filter','domain-filter','progress-filter'].includes(e.target.id)){const id=e.target.id;filters[{'status-filter':'status','domain-filter':'domain','progress-filter':'progress'}[id]]=e.target.value;render();document.getElementById(id)?.focus();}});
 document.addEventListener('submit',e=>{if(e.target.id!=='review-form')return;e.preventDefault();const form=new FormData(e.target);notes[e.target.dataset.id]={owner:form.get('owner').trim(),progress:form.get('progress'),note:form.get('note').trim(),updated_at:new Date().toISOString()};if(!real()){try{localStorage.setItem(storageKey,JSON.stringify(notes));}catch{storageAvailable=false;}}const id=e.target.dataset.id;pristineForm=null;detail.close();render();(document.querySelector(`[data-control="${id}"]`)||document.querySelector('#progress-filter')||main).focus();notify(!real()&&storageAvailable?'Next action saved in this browser.':'Saved for this tab only. Export your review to keep it.');});
@@ -138,6 +218,6 @@ document.querySelector('#import-file').addEventListener('change',async e=>{
   }catch(error){pendingImport=null;openImport(error instanceof SyntaxError?'This file is not valid JSON. Your current workspace is unchanged.':error.message);}
   finally{e.target.value='';}
 });
-window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(next==='main'){main.focus({preventScroll:true});return;}page=navItems.some(n=>n[0]===next)?next:'overview';render();main.focus({preventScroll:true});window.scrollTo(0,0);});
+window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(next==='main'){main.focus({preventScroll:true});return;}page=visibleNavItems().some(n=>n[0]===next)?next:(canShowCase()?'case':'overview');render();main.focus({preventScroll:true});window.scrollTo(0,0);});
 for(const dialog of [detail,help])dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom){if(dialog===detail)requestCloseDetail();else dialog.close();}}});
-try {const response=await fetch('./data/sample-report.json');if(!response.ok)throw new Error('Sample report could not be loaded.');sample=validateReport(await response.json());const target=location.hash.slice(1);page=navItems.some(n=>n[0]===target)?target:'overview';if(new URLSearchParams(location.search).get('local')==='1'){if(!localWorkspace)throw new Error('Real reports open only in the local workspace.');const localResponse=await fetch('./local-report.json');if(!localResponse.ok)throw new Error('Local report could not be loaded. Restart the local server with --report.');const localData=parseWorkspaceImport(await localResponse.json(),{allowReal:true});await setReport(localData.report,localData.notes);}else await setReport(sample);}catch(error){main.innerHTML=`<div class="empty"><h1>Unable to open the workspace</h1><p>${h(error.message)}</p><p>Serve the demo through HTTP, or use the hosted GitHub Pages demo.</p><a class="button secondary" href="${repo}">Open repository</a></div>`;}
+try {const response=await fetch('./data/sample-report.json');if(!response.ok)throw new Error('Sample report could not be loaded.');sample=validateReport(await response.json());const target=location.hash.slice(1);page=visibleNavItems().some(n=>n[0]===target)?target:(canShowCase()?'case':'overview');if(new URLSearchParams(location.search).get('local')==='1'){if(!localWorkspace)throw new Error('Real reports open only in the local workspace.');const localResponse=await fetch('./local-report.json');if(!localResponse.ok)throw new Error('Local report could not be loaded. Restart the local server with --report.');const localData=parseWorkspaceImport(await localResponse.json(),{allowReal:true});await setReport(localData.report,localData.notes);}else await setReport(sample);}catch(error){main.innerHTML=`<div class="empty"><h1>Unable to open the workspace</h1><p>${h(error.message)}</p><p>Serve the demo through HTTP, or use the hosted GitHub Pages demo.</p><a class="button secondary" href="${repo}">Open repository</a></div>`;}

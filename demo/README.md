@@ -1,9 +1,12 @@
 # SOC-2 readiness workspace
 
 The browser interface for local GitHub assessments and a separate synthetic
-policy demonstration. Start with
-the findings that need attention, inspect the source and control guidance, and
-keep a local review plan without changing the underlying verdicts.
+policy demonstration. The public sample opens with a customer asking who approved a
+release. Compare the evidence needed for a configuration snapshot, one release,
+and a quarter of production changes. The worksheet compares manual collection
+hours with setup and recurring review hours for a three-month pilot.
+[Open the overview](https://safetymp.github.io/SOC-2/#overview) to inspect findings,
+their sources and the local review plan.
 
 [Public project overview](https://safetymp.github.io/SOC-2/about.html) ·
 [Interactive sample](https://safetymp.github.io/SOC-2/)

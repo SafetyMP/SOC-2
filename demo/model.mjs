@@ -143,3 +143,14 @@ export function nextAction(c) {
   if(c.id==='CTRL-ACCESS-003') return 'Replace wildcard actions and resources with scoped permissions. Refresh the sensor payload and rerun; a time-boxed exception is not a clean pass.';
   return 'Inspect the finding and the control guidance below. Correct the source configuration or missing evidence, then collect and evaluate again.';
 }
+
+// One pass per repository in each of the three monthly pilot cycles.
+export function pilotHours({repositories, manualMinutes, collectorMinutes, setupHours}) {
+  const inputs = [repositories, manualMinutes, collectorMinutes, setupHours];
+  if (!inputs.every(Number.isFinite) || inputs.some(value => value < 0) ||
+      !Number.isInteger(repositories) || repositories < 1) return null;
+  const collections = 3 * repositories;
+  const manual = collections * manualMinutes / 60;
+  const collector = setupHours + collections * collectorMinutes / 60;
+  return {manual, collector, saved: manual - collector, threshold: setupHours * 60 / collections};
+}
