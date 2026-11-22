@@ -1,13 +1,6 @@
 # SOC-2 readiness workspace
 
-The browser interface for local GitHub assessments and a separate synthetic
-policy demonstration. The public sample opens with a customer asking who approved a
-release. Compare the evidence needed for a configuration snapshot, one release,
-and a quarter of production changes. Choose the control owner’s response, compare all three handoffs and try a hypothetical returned record or exception. Each branch identifies what the customer may be told and who acts next. These choices leave the recorded policy result intact. The worksheet compares manual collection
-hours with setup and recurring review hours for a three-month pilot.
-The [technical guide](https://safetymp.github.io/SOC-2/#technical) links the evidence records, explains coverage and opens the private assessment setup or report importer.
-[Open the overview](https://safetymp.github.io/SOC-2/#overview) to inspect findings,
-their sources and the local review plan.
+Prepare an October change workpaper from four synthetic deployment receipts. Link commit IDs, trace approvals against merge time, request an archive extract and revise tickmarks after manager review. The [technical reference](https://safetymp.github.io/SOC-2/#technical) maps the Python collector, policy evaluator, local viewer and fixture exporter. The separate [sample viewer](https://safetymp.github.io/SOC-2/#overview) exposes the bundled policy results. The exercise adds invented operating records and never changes those results.
 
 [Public project overview](https://safetymp.github.io/SOC-2/about.html) ·
 [Interactive sample](https://safetymp.github.io/SOC-2/)

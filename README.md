@@ -5,7 +5,7 @@ fix without sending your evidence to a hosted workspace. SOC-2 combines a local
 Python collector, OPA/Rego policy checks, and a browser interface for evidence
 review. A synthetic demo lets you explore the workflow before connecting anything.
 
-**[Try the release evidence case](https://safetymp.github.io/SOC-2/)** ·
+**[Prepare the change workpaper](https://safetymp.github.io/SOC-2/)** ·
 [Project overview](https://safetymp.github.io/SOC-2/about.html) ·
 [Local assessment guide](docs/local-github-assessment.md) ·
 [Documentation](docs/README.md)
@@ -13,9 +13,9 @@ review. A synthetic demo lets you explore the workflow before connecting anythin
 [![Workspace checks](https://github.com/SafetyMP/SOC-2/actions/workflows/demo.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/demo.yml)
 [![Policy checks](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml)
 
-## Try the release evidence case
+## Prepare the change workpaper
 
-A customer’s vendor-risk reviewer asks the service provider’s compliance lead who approved a production release. The sample shows two repositories configured to require two reviews. Change the customer’s request from a settings snapshot to a particular release or a whole quarter. Inspect the recorded policy result and decide which records the platform team still needs. As the pilot sponsor, compare collection and reviewer time with a three-month local collector pilot. Check whether a second reviewer can retrieve each source and identify missing evidence before expanding. [Open the case](https://safetymp.github.io/SOC-2/#case) · [Explore all sample findings](https://safetymp.github.io/SOC-2/#overview)
+Reconcile four synthetic deployment receipts to change records. Inspect review timestamps, request an archived record and prepare the assurance manager’s handoff. The manager returns unsupported tickmarks for revision. The actual collector measures repository settings. The operating records in this exercise are invented. [Open the workpaper](https://safetymp.github.io/SOC-2/#case) · [Technical reference](https://safetymp.github.io/SOC-2/#technical)
 
 ## Choose your workflow
 

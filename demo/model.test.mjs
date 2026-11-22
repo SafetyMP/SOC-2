@@ -230,95 +230,35 @@ test('local workspace detection allows only HTTP(S) loopback hosts',()=>{
   assert.equal(isLocalWorkspace({hostname:'localhost'}),false);assert.equal(isLocalWorkspace(null),false);
 });
 
-test('three-month pilot includes setup, break-even and slower collection', async () => {
-  const {pilotHours} = await import('./model.mjs');
-  const inputs = {repositories: 8, manualMinutes: 25, collectorMinutes: 10, setupHours: 4};
-  assert.deepEqual(pilotHours(inputs), {manual: 10, collector: 8, saved: 2, threshold: 10});
-  assert.equal(pilotHours({...inputs, collectorMinutes: 15}).saved, 0);
-  assert.equal(pilotHours({...inputs, collectorMinutes: 30}).saved, -6);
-  for (const repositories of [0, -1, 0.5, NaN]) assert.equal(pilotHours({...inputs, repositories}), null);
+test('workpaper conclusions require matching sources, timely approvals and explicit gaps', async () => {
+  const {deployments, reviewRow} = await import('./model.mjs');
+  const [clean, late, archived, unavailable] = deployments;
+  assert.equal(reviewRow(clean,'212','supported',false).accepted,true);
+  assert.equal(reviewRow(clean,'217','supported',false).accepted,false);
+  assert.equal(reviewRow(late,'217','deviation',false).accepted,true);
+  assert.equal(reviewRow(late,'217','supported',false).accepted,false);
+  assert.equal(reviewRow(archived,'','open',false).accepted,true);
+  assert.equal(reviewRow(archived,'','open',true).accepted,false);
+  assert.equal(reviewRow(archived,'224','supported',true).accepted,true);
+  assert.equal(reviewRow(unavailable,'231','deviation',true).accepted,false);
+  assert.equal(reviewRow(unavailable,'231','open',true).accepted,true);
 });
 
-test('customer requests and owner actions route all nine initial dispositions without inventing evidence', async () => {
-  const {evidenceActions, evidenceDecision} = await import('./model.mjs');
-  const cases = ['settings', 'release', 'quarter'];
-  const titles = new Set();
-  for (const scope of cases) {
-    for (const action of Object.keys(evidenceActions)) {
-      const result = evidenceDecision(scope, action);
-      assert.equal(result.simulated, false);
-      assert.equal(result.claim, 'At collection, both fixture repositories required two reviews.');
-      assert.ok(result.owner && result.next);
-      titles.add(result.title);
-    }
+test('two distinct people must approve before merge', async () => {
+  const {premergeReviewers, reviewRow, deployments, changes} = await import('./model.mjs');
+  assert.deepEqual(premergeReviewers([], '10:00'), []);
+  assert.deepEqual(premergeReviewers([['A','10:00'],['B','10:01']], '10:00'), []);
+  assert.deepEqual(premergeReviewers([['A','09:00'],['A','09:20'],['B','10:10']], '10:00'), ['A']);
+  assert.deepEqual(premergeReviewers([['A','09:00'],['B','09:20']], '10:00'), ['A','B']);
+  const late = deployments[1];
+  assert.match(reviewRow(late,'217','deviation',false).note, /Only I. Wu approved before merge/);
+  const change = changes.find(row => row.pr === '217');
+  const events = change.approvals;
+  try {
+    change.approvals = [];
+    assert.equal(reviewRow(late,'217','supported',false).accepted, false);
+    assert.match(reviewRow(late,'217','deviation',false).note, /No named reviewer/);
+  } finally {
+    change.approvals = events;
   }
-  assert.equal(titles.size, 9);
-  assert.equal(evidenceDecision('bad','release'), null);
-  assert.equal(evidenceDecision('release','bad'), null);
-  assert.equal(evidenceDecision('release','release','unknown'), null);
-});
-
-test('hypothetical returns preserve gaps, exceptions and the boundaries of individual and sample claims', async () => {
-  const {evidenceDecision} = await import('./model.mjs');
-  for (const scope of ['settings','release','quarter']) {
-    for (const action of ['release','quarter']) {
-      assert.match(evidenceDecision(scope, action, 'missing').claim, /incomplete/);
-      const exception = evidenceDecision(scope, action, 'exception');
-      assert.equal(exception.title, 'Escalate the observed exception');
-      assert.equal(exception.simulated, true);
-      assert.equal(exception.owner, 'Change owner');
-    }
-  }
-  assert.equal(evidenceDecision('release','release','matched').title, 'Answer for this release');
-  assert.equal(evidenceDecision('quarter','quarter','matched').title, 'Report the sample results');
-  assert.match(evidenceDecision('quarter','quarter','matched').claim, /tested sample/);
-  assert.equal(evidenceDecision('quarter','release','matched').title, 'One release cannot cover the quarter');
-  assert.equal(evidenceDecision('release','quarter','matched').title, 'The named release still needs a trace');
-  assert.equal(evidenceDecision('release','snapshot','matched').simulated,false);
-});
-
-test('a returned release trace leaves a settings-only handoff with the compliance lead', async () => {
-  const {evidenceDecision} = await import('./model.mjs');
-  const result = evidenceDecision('settings', 'release', 'matched');
-  assert.equal(result.owner, 'Compliance lead');
-  assert.equal(result.next, 'Answer the settings question with the dated observation. Ask whether the customer also needs release-specific evidence.');
-  assert.match(result.claim, /linked release has two approvals recorded before merge/);
-});
-
-test('release packets present the sequence before their conditional interpretation', async () => {
-  const {releasePackets, evidenceReturns, evidenceDecision} = await import('./model.mjs');
-  assert.deepEqual(Object.values(evidenceReturns.release).slice(1), ['Packet A', 'Packet B', 'Packet C']);
-  for (const key of ['matched', 'exception']) {
-    const events = releasePackets[key].events;
-    const times = events.map(record => record.time);
-    assert.deepEqual(times, [...times].sort());
-    const merge = events.find(record => record.event.includes('merged'));
-    const approvals = events.filter(record => record.event.includes('approved'));
-    assert.equal(approvals.length, 2);
-    assert.equal(approvals.filter(record => record.time < merge.time).length, key === 'matched' ? 2 : 1);
-    assert.match(events.at(-1).event, /REL-204 deployed commit 7c4f9ac/);
-  }
-  assert.equal(releasePackets.missing.events.length, 1);
-  assert.match(releasePackets.missing.events[0].event, /fields are empty/);
-  assert.match(evidenceDecision('release','release','missing').claim, /incomplete/);
-});
-
-test('quarter packets expose the reconciled population and sample before its interpretation', async () => {
-  const {quarterDeployments, quarterPackets, evidenceReturns, evidenceDecision} = await import('./model.mjs');
-  assert.deepEqual(Object.values(evidenceReturns.quarter).slice(1), ['Packet D','Packet E','Packet F']);
-  for (const key of ['matched','exception']) {
-    const packet = quarterPackets[key];
-    assert.deepEqual(packet.register, quarterDeployments);
-    assert.deepEqual(packet.sample.map(row => row.release), quarterDeployments.filter((_, i) => i % 2 === 0));
-    const short = packet.sample.filter(row => new Set(row.approvals).size < 2);
-    assert.deepEqual(short.map(row => row.release), key === 'matched' ? [] : ['REL-203']);
-    assert.ok(!packet.sample.some(row => row.release === 'REL-204'));
-  }
-  assert.deepEqual(quarterDeployments.filter(id => !quarterPackets.missing.register.includes(id)), ['REL-204']);
-  assert.equal(quarterPackets.missing.sample.length, 0);
-  assert.deepEqual(quarterPackets.exception.sample.find(row => row.release === 'REL-203').approvals, ['Patel']);
-  const exception = evidenceDecision('quarter','quarter','exception');
-  assert.match(exception.claim, /REL-203, the packet documents one of the two required approvals before merge/);
-  assert.match(exception.claim, /Whether a second approval occurred before merge is unknown/);
-  assert.match(evidenceDecision('release','quarter','matched').title, /named release still needs a trace/);
 });
