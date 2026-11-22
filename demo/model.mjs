@@ -144,43 +144,130 @@ export function nextAction(c) {
   return 'Inspect the finding and the control guidance below. Correct the source configuration or missing evidence, then collect and evaluate again.';
 }
 
-// Invented operating records for the exercise. The real collector reads settings only.
-export const deployments = [
-  {id: 'D-041', date: 'Oct 03', time: '09:20', sha: 'c85b25a'},
-  {id: 'D-042', date: 'Oct 11', time: '16:45', sha: '1fcc82e'},
-  {id: 'D-043', date: 'Oct 19', time: '11:20', sha: 'ef517c0'},
-  {id: 'D-044', date: 'Oct 28', time: '14:00', sha: '81c04bf'}
-];
-
-export const changes = [
-  {pr: '217', sha: '1fcc82e', merge: '16:15', approvals: [['I. Wu','15:38'],['I. Wu','16:02'],['K. Bell','16:28']]},
-  {pr: '212', sha: 'c85b25a', merge: '09:12', approvals: [['A. Gray','08:40'],['K. Bell','09:02']]},
-  {pr: '231', sha: '81c04bf', merge: '13:40', approvals: null},
-  {pr: '224', sha: 'ef517c0', merge: '11:03', approvals: [['M. Roy','10:41'],['I. Wu','10:54']], archived: true}
-];
-
-export const marks = {supported: 'Supported', deviation: 'Deviation', open: 'Open evidence request'};
-
-export function reviewRow(deployment, selectedPR, mark, archiveOpen) {
-  const change = changes.find(row => row.pr === selectedPR && (!row.archived || archiveOpen));
-  if (!mark) return {accepted: false, note: 'Record a tickmark for this deployment.'};
-  if (!change) {
-    const matchAvailable = changes.some(row => row.sha === deployment.sha && (!row.archived || archiveOpen));
-    if (!matchAvailable && mark === 'open') return {accepted: true, note: 'Keep the unmatched release on the owner’s request list.'};
-    return {accepted: false, note: matchAvailable ? 'Check the register for a matching commit before recording a result.' : 'The current register cannot support a conclusion for this commit.'};
-  }
-  if (deployment.sha !== change.sha) return {accepted: false, note: 'The selected change has a different commit. Reconcile the two source IDs.'};
-  if (!change.approvals) return {accepted: mark === 'open', note: 'The review export is unavailable. Obtain the underlying events from the platform owner.'};
-  const reviewers = premergeReviewers(change.approvals, change.merge);
-  if (reviewers.length === 0) return {accepted: mark === 'deviation', note: 'No named reviewer approved before merge. Send the sequence to the change owner.'};
-  if (reviewers.length === 1) return {accepted: mark === 'deviation', note: `Only ${reviewers[0]} approved before merge. The control requires two distinct reviewers. Send the sequence to the change owner.`};
-  return {accepted: mark === 'supported', note: `${reviewers.join(' and ')} approved before merge on the linked change.`};
+// One pass per repository in each of the three monthly pilot cycles.
+export function pilotHours({repositories, manualMinutes, collectorMinutes, setupHours}) {
+  const inputs = [repositories, manualMinutes, collectorMinutes, setupHours];
+  if (!inputs.every(Number.isFinite) || inputs.some(value => value < 0) ||
+      !Number.isInteger(repositories) || repositories < 1) return null;
+  const collections = 3 * repositories;
+  const manual = collections * manualMinutes / 60;
+  const collector = setupHours + collections * collectorMinutes / 60;
+  return {manual, collector, saved: manual - collector, threshold: setupHours * 60 / collections};
 }
 
-export function premergeReviewers(approvals, mergeTime) {
-  const reviewers = new Set();
-  for (const [name, time] of approvals) {
-    if (name.trim() && time < mergeTime) reviewers.add(name.trim());
+// Decisions apply only to the fictional customer request. They never alter report controls.
+export const evidenceActions = {
+  snapshot: 'Send the settings snapshot',
+  release: 'Request the release record',
+  quarter: 'Sample the quarter'
+};
+
+// Alternative synthetic returns for the same release, shown independently.
+export const releasePackets = {
+  matched: {label: 'Packet A', events: [
+    {time: '09:12', reviewer: 'Lee', event: 'Reviewer Lee approved PR #62'},
+    {time: '09:24', reviewer: 'Chen', event: 'Reviewer Chen approved PR #62'},
+    {time: '09:30', kind: 'merge', event: 'PR #62 merged as commit 7c4f9ac'},
+    {time: '09:46', event: 'Release REL-204 deployed commit 7c4f9ac'}
+  ]},
+  missing: {label: 'Packet B', events: [
+    {time: '09:46', event: 'Release ticket REL-204 marked deployed. Commit and pull request fields are empty.'}
+  ]},
+  exception: {label: 'Packet C', events: [
+    {time: '09:12', reviewer: 'Lee', event: 'Reviewer Lee approved PR #62'},
+    {time: '09:30', kind: 'merge', event: 'PR #62 merged as commit 7c4f9ac'},
+    {time: '09:37', reviewer: 'Chen', event: 'Reviewer Chen approved PR #62'},
+    {time: '09:46', event: 'Release REL-204 deployed commit 7c4f9ac'}
+  ]}
+};
+
+// The independent delivery log defines the six releases in this hypothetical quarter.
+export const quarterDeployments = ['REL-201','REL-202','REL-203','REL-204','REL-205','REL-206'];
+const quarterSample = [
+  {release: 'REL-201', approvals: ['Lee','Chen']},
+  {release: 'REL-203', approvals: ['Patel','Lee']},
+  {release: 'REL-205', approvals: ['Chen','Patel']}
+];
+export const quarterPackets = {
+  matched: {label: 'Packet D', register: quarterDeployments, sample: quarterSample},
+  missing: {label: 'Packet E', register: quarterDeployments.filter(id => id !== 'REL-204'), sample: []},
+  exception: {label: 'Packet F', register: quarterDeployments, sample: [
+    quarterSample[0], {...quarterSample[1], approvals: ['Patel']}, quarterSample[2]
+  ]}
+};
+
+export const evidenceReturns = {
+  release: {
+    pending: 'Waiting for the release owner',
+    ...Object.fromEntries(Object.entries(releasePackets).map(([key, packet]) => [key, packet.label]))
+  },
+  quarter: {
+    pending: 'Waiting for the change owner',
+    ...Object.fromEntries(Object.entries(quarterPackets).map(([key, packet]) => [key, packet.label]))
   }
-  return [...reviewers];
+};
+
+const initialDisposition = {
+  settings: {
+    snapshot: ['Answer the configuration question', 'Compliance lead', 'Attach the dated settings record with both repository names.'],
+    release: ['Release review exceeds the request', 'Compliance lead', 'Answer the settings question with the dated observation. Ask whether the customer also needs release-specific evidence.'],
+    quarter: ['Period sampling exceeds the request', 'Compliance lead', 'Send the settings observation and ask whether the customer also needs evidence of operation over time.']
+  },
+  release: {
+    snapshot: ['Release request stays open', 'Release owner', 'Obtain the deployed commit, the merged pull request and approvals dated before merge.'],
+    release: ['Collect the release evidence', 'Release owner', 'Trace the deployed commit to the pull request and compare each approval timestamp with its merge time.'],
+    quarter: ['The named release still needs a trace', 'Release owner', 'Identify the named release and its pull request. A period sample can omit this particular change.']
+  },
+  quarter: {
+    snapshot: ['Period request stays open', 'Change owner', 'Identify the changes deployed during the quarter and the evidence held for each.'],
+    release: ['One release cannot cover the quarter', 'Change owner', 'Reconcile the quarter’s release population, agree the sample and obtain records for selected changes.'],
+    quarter: ['Plan the period review', 'Change owner', 'Agree the period and sampling method with the reviewer. Reconcile the release list and retrieve the selected approval records.']
+  }
+};
+
+export function evidenceDecision(scope, action, returned = 'pending') {
+  if (!Object.hasOwn(initialDisposition, scope) || !Object.hasOwn(evidenceActions, action)) return null;
+  if (action !== 'snapshot' && !Object.hasOwn(evidenceReturns[action], returned)) return null;
+  const [title, owner, next] = initialDisposition[scope][action];
+  const observation = 'At collection, both fixture repositories required two reviews.';
+  const baseline = {title, owner, next, claim: observation, simulated: false};
+  if (action === 'snapshot' || returned === 'pending') return baseline;
+
+  if (returned === 'missing') {
+    return {...baseline, simulated: true, title: 'Evidence gap remains open',
+      owner: action === 'release' ? 'Release owner' : 'Change owner',
+      next: action === 'release' ? 'Locate the release identifier and its source records, or document why the link is unavailable.' : 'Reconcile the deployment list against the delivery system before selecting a sample.',
+      claim: observation + ' The requested follow-up records are incomplete.'};
+  }
+
+  if (returned === 'exception') {
+    return {...baseline, simulated: true, title: 'Escalate the observed exception', owner: 'Change owner',
+      next: 'Preserve the reviewed record, check for a documented exception and agree follow-up with the compliance lead.',
+      claim: action === 'release' ? 'One of the two recorded approvals occurred after this release was merged.' : 'For REL-203, the packet documents one of the two required approvals before merge. Whether a second approval occurred before merge is unknown. Changes outside the sample remain untested.'};
+  }
+
+  const claim = action === 'release' ? 'The linked release has two approvals recorded before merge.' :
+    'Each change in the agreed sample has two documented approvals. This conclusion applies to the tested sample.';
+  if (scope !== action) return {...baseline, simulated: true, claim: observation + ' ' + claim};
+  return {title: action === 'release' ? 'Answer for this release' : 'Report the sample results', owner: 'Compliance lead',
+    next: action === 'release' ? 'Provide the dated trace for the named release.' : 'Disclose the dates, population reconciliation, selection method and tested results. The independent auditor determines any examination conclusion.',
+    claim, simulated: true};
+}
+
+// All event text comes from the synthetic packet definitions above.
+export function packetTrace(scope,key) {
+  if (scope === 'quarter') {
+    const packet = quarterPackets[key];
+    const missing = quarterDeployments.filter(id => !packet.register.includes(id));
+    const rows = packet.sample.map(row => {
+      const reviewers = [...new Set(row.approvals)];
+      return `<li>${row.release} · ${reviewers.length} distinct premerge reviewer${reviewers.length === 1 ? '' : 's'} (${reviewers.join(', ')})</li>`;
+    }).join('');
+    return `<p>Deployment log: ${quarterDeployments.length} releases · Register: ${packet.register.length} changes.</p>${missing.length ? `<p>Unmatched: ${missing.join(', ')}. Obtain the missing register entry before selecting the sample.</p>` : `<ul>${rows}</ul>`}`;
+  }
+  const events = releasePackets[key].events;
+  const merge = events.find(row => row.kind === 'merge');
+  if (!merge) return `<p>${events[0].event} The ticket cannot be joined to an approval trail.</p>`;
+  const people = new Set(events.filter(row => row.reviewer && row.time < merge.time).map(row => row.reviewer));
+  return `<ol class="trace-events">${events.map(row => `<li><time>${row.time}</time> ${row.event}</li>`).join('')}</ol><p>${people.size} distinct reviewer${people.size===1?'':'s'} before the ${merge.time} UTC merge.</p>`;
 }

@@ -14,7 +14,7 @@ protocol. Read the current source and applicable instructions before acting.
 - [Current architecture](https://github.com/SafetyMP/SOC-2/blob/main/docs/architecture.md): implementation and data boundaries.
 - [Documentation map](https://github.com/SafetyMP/SOC-2/blob/main/docs/README.md): current guides and explicitly historical designs.
 - [Public project overview](https://safetymp.github.io/SOC-2/about.html): crawlable introduction.
-- [Synthetic workspace demo](https://safetymp.github.io/SOC-2/): sample findings only; real reports are rejected.
+- [Synthetic workspace demo](https://safetymp.github.io/SOC-2/): single-release and whole-quarter evidence case, pilot decision and technical trace.
 
 ## For repository agents and contributors
 

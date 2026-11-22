@@ -5,7 +5,7 @@ fix without sending your evidence to a hosted workspace. SOC-2 combines a local
 Python collector, OPA/Rego policy checks, and a browser interface for evidence
 review. A synthetic demo lets you explore the workflow before connecting anything.
 
-**[Prepare the change workpaper](https://safetymp.github.io/SOC-2/)** ·
+**[Try the release evidence case](https://safetymp.github.io/SOC-2/)** ·
 [Project overview](https://safetymp.github.io/SOC-2/about.html) ·
 [Local assessment guide](docs/local-github-assessment.md) ·
 [Documentation](docs/README.md)
@@ -13,9 +13,9 @@ review. A synthetic demo lets you explore the workflow before connecting anythin
 [![Workspace checks](https://github.com/SafetyMP/SOC-2/actions/workflows/demo.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/demo.yml)
 [![Policy checks](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml/badge.svg?branch=main)](https://github.com/SafetyMP/SOC-2/actions/workflows/policy-ci.yml)
 
-## Prepare the change workpaper
+## Try the release evidence case
 
-Reconcile four synthetic deployment receipts to change records. Inspect review timestamps, request an archived record and prepare the assurance manager’s handoff. The manager returns unsupported tickmarks for revision. The actual collector measures repository settings. The operating records in this exercise are invented. [Open the workpaper](https://safetymp.github.io/SOC-2/#case) · [Technical reference](https://safetymp.github.io/SOC-2/#technical)
+A customer’s vendor-risk reviewer asks the service provider’s compliance lead who approved a production release. The sample shows two repositories configured to require two reviews. Change the customer’s request from a settings snapshot to a particular release or a whole quarter. Inspect the recorded policy result and decide which records the platform team still needs. As the pilot sponsor, compare collection and reviewer time with a three-month local collector pilot. Check whether a second reviewer can retrieve each source and identify missing evidence before expanding. [Open the case](https://safetymp.github.io/SOC-2/#case) · [Trace the selected evidence](https://safetymp.github.io/SOC-2/#technical)
 
 ## Choose your workflow
 
@@ -25,7 +25,7 @@ Reconcile four synthetic deployment receipts to change records. Inspect review t
 | Input | Read-only GitHub API collection using your local `gh` authentication | Bundled synthetic fixtures and procedural manifests |
 | Scope | **3 GitHub checks**, 34 catalog controls outside scope | **20 checks**: 11 technical and 9 procedural; 17 outside scope |
 | Where it runs | Local CLI and loopback browser viewer | [GitHub Pages demo](https://safetymp.github.io/SOC-2/) or local viewer |
-| Evidence and notes | Private files outside Git checkouts; notes in tab memory until exported | Synthetic report; sample notes stored in your browser |
+| Evidence and notes | Private files outside Git checkouts; notes in tab memory until exported | Synthetic operating packets and a shareable case selection |
 
 A pass describes the supplied evidence for a specific check. It is **not a SOC 2
 report, CPA opinion, certification, or proof of complete framework coverage**.
