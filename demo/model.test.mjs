@@ -302,3 +302,19 @@ test('release packets present the sequence before their conditional interpretati
   assert.match(releasePackets.missing.events[0].event, /fields are empty/);
   assert.match(evidenceDecision('release','release','missing').claim, /incomplete/);
 });
+
+test('quarter packets expose the reconciled population and sample before its interpretation', async () => {
+  const {quarterDeployments, quarterPackets, evidenceReturns, evidenceDecision} = await import('./model.mjs');
+  assert.deepEqual(Object.values(evidenceReturns.quarter).slice(1), ['Packet D','Packet E','Packet F']);
+  for (const key of ['matched','exception']) {
+    const packet = quarterPackets[key];
+    assert.deepEqual(packet.register, quarterDeployments);
+    assert.deepEqual(packet.sample.map(row => row.release), quarterDeployments.filter((_, i) => i % 2 === 0));
+    const short = packet.sample.filter(row => new Set(row.approvals).size < 2);
+    assert.deepEqual(short.map(row => row.release), key === 'matched' ? [] : ['REL-203']);
+    assert.ok(!packet.sample.some(row => row.release === 'REL-204'));
+  }
+  assert.deepEqual(quarterDeployments.filter(id => !quarterPackets.missing.register.includes(id)), ['REL-204']);
+  assert.equal(quarterPackets.missing.sample.length, 0);
+  assert.match(evidenceDecision('release','quarter','matched').title, /named release still needs a trace/);
+});

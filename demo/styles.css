@@ -255,3 +255,8 @@ nav .count {background: #50454b; color: #fff;}
 .release-packet time {font-variant-numeric: tabular-nums; font-weight: 650; color: #741b37;}
 .packet-reading summary {cursor: pointer; color: #741b37; font-weight: 600;}
 .packet-reading[open] summary {margin-bottom: 1rem;}
+.period-records, .sample-approvals {margin-block: .8rem;}
+.period-records dd, .sample-approvals dd {font-variant-numeric: tabular-nums;}
+.quarter-packet h4 {margin: 1rem 0 .3rem;}
+.sample-approvals > div {display: grid; grid-template-columns: 6.5rem 1fr; gap: .5rem; border-top: 1px solid #ded4d8; padding-block: .4rem;}
+.sample-approvals dd {margin: 0;}

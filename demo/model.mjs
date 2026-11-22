@@ -181,6 +181,21 @@ export const releasePackets = {
   ]}
 };
 
+// The independent delivery log defines the six releases in this hypothetical quarter.
+export const quarterDeployments = ['REL-201','REL-202','REL-203','REL-204','REL-205','REL-206'];
+const quarterSample = [
+  {release: 'REL-201', approvals: ['Lee','Chen']},
+  {release: 'REL-203', approvals: ['Patel','Lee']},
+  {release: 'REL-205', approvals: ['Chen','Patel']}
+];
+export const quarterPackets = {
+  matched: {label: 'Packet D', register: quarterDeployments, sample: quarterSample},
+  missing: {label: 'Packet E', register: quarterDeployments.filter(id => id !== 'REL-204'), sample: []},
+  exception: {label: 'Packet F', register: quarterDeployments, sample: [
+    quarterSample[0], {...quarterSample[1], approvals: ['Patel']}, quarterSample[2]
+  ]}
+};
+
 export const evidenceReturns = {
   release: {
     pending: 'Waiting for the release owner',
@@ -188,9 +203,7 @@ export const evidenceReturns = {
   },
   quarter: {
     pending: 'Waiting for the change owner',
-    matched: 'Reconciled population and two approvals on each sampled change',
-    missing: 'Incomplete deployment list',
-    exception: 'One sampled change lacks approval evidence'
+    ...Object.fromEntries(Object.entries(quarterPackets).map(([key, packet]) => [key, packet.label]))
   }
 };
 

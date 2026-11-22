@@ -1,4 +1,4 @@
-import {releasePackets,evidenceActions,evidenceReturns,evidenceDecision,pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
+import {quarterDeployments,quarterPackets,releasePackets,evidenceActions,evidenceReturns,evidenceDecision,pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
 
 const paths={grid:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',flag:'M5 21V3m0 1h13l-3 5 3 5H5',shield:'M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6z M8 12l3 3 5-6',file:'M14 3H5v18h14V8z M14 3v5h5 M8 12h8 M8 16h6',layers:'M12 3l9 5-9 5-9-5z M3 12l9 5 9-5 M3 16l9 5 9-5',arrow:'M5 12h14 M13 6l6 6-6 6',down:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5',search:'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',book:'M12 5v16 M12 5C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-3-1-6-2-10 1',check:'M5 12l4 4L19 6',close:'M6 6l12 12 M6 18L18 6',clock:'M12 8v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',key:'M14 4a5 5 0 1 1-3 9L4 20H1v-3l8-8a5 5 0 0 1 5-5z',info:'M12 11v6 M12 7h.01 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',refresh:'M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 2 M4 17l2 2a8 8 0 0 0 13-2',code:'M8 5l-6 7 6 7 M16 5l6 7-6 7',external:'M14 3h7v7 M21 3L10 14 M10 3H3v18h18v-7'};
 const icon=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.shield}"/></svg>`;
@@ -68,12 +68,29 @@ function actionOutcome() {
   const interpretation = `<p class="eyebrow">${outcome.simulated ? 'Hypothetical return' : 'With the current fixture'}</p>
     <h3>${outcome.title}</h3><dl><dt>Customer response</dt><dd>${outcome.claim}</dd>
     <dt>Next owner · ${outcome.owner}</dt><dd>${outcome.next}</dd></dl>`;
-  const packet = selectedAction === 'release' && releasePackets[returnedEvidence];
-  if (!packet) return interpretation;
+  if (!outcome.simulated) return interpretation;
+  const packet = selectedAction === 'release' ? releasePacketView() : quarterPacketView();
+  return `${packet}<details class="packet-reading"><summary>Compare your reading with the case interpretation</summary>${interpretation}</details>`;
+}
+
+function releasePacketView() {
+  const packet = releasePackets[returnedEvidence];
   return `<figure class="release-packet"><figcaption>${packet.label} · REL-204</figcaption>
     <p>Illustrative records from one day, in UTC. Which approvals can you link to the merged commit?</p>
-    <ol>${packet.events.map(record => `<li><time>${record.time}</time><span>${record.event}</span></li>`).join('')}</ol>
-    </figure><details class="packet-reading"><summary>Compare your reading with the case interpretation</summary>${interpretation}</details>`;
+    <ol>${packet.events.map(record => `<li><time>${record.time}</time><span>${record.event}</span></li>`).join('')}</ol></figure>`;
+}
+
+function quarterPacketView() {
+  const packet = quarterPackets[returnedEvidence];
+  const approvals = packet.sample.length ? `<dl class="sample-approvals">
+    ${packet.sample.map(row => `<div><dt>${row.release}</dt><dd>${row.approvals.join(' and ')}</dd></div>`).join('')}</dl>` :
+    '<p>The packet includes no sampled approval records.</p>';
+  return `<figure class="release-packet quarter-packet"><figcaption>${packet.label} · April–June 2026</figcaption>
+    <p>Compare the two illustrative inventories. The agreed sample takes every other release in deployment order, starting with the first, once the inventories reconcile.</p>
+    <dl class="period-records"><dt>Delivery log</dt><dd>${quarterDeployments.join(' · ')}</dd>
+    <dt>Change register</dt><dd>${packet.register.join(' · ')}</dd></dl>
+    <h4>Reviewers with documented approval before merge</h4>${approvals}
+    <p>Which releases can the compliance lead describe to the customer?</p></figure>`;
 }
 
 function returnOptions() {
