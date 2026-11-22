@@ -1,6 +1,11 @@
 # SOC-2 readiness workspace
 
-Prepare an October change workpaper from four synthetic deployment receipts. Link commit IDs, trace approvals against merge time, request an archive extract and revise tickmarks after manager review. The [technical reference](https://safetymp.github.io/SOC-2/#technical) maps the Python collector, policy evaluator, local viewer and fixture exporter. The separate [sample viewer](https://safetymp.github.io/SOC-2/#overview) exposes the bundled policy results. The exercise adds invented operating records and never changes those results.
+The browser interface for local GitHub assessments and a separate synthetic
+policy demonstration. The public sample opens with a customer asking who approved a
+release. Compare the evidence needed for a configuration snapshot, one release,
+and a quarter of production changes. Choose the control owner’s response, compare all three handoffs and try a hypothetical returned record or exception. Each branch identifies what the customer may be told and who acts next. These choices leave the recorded policy result intact. The worksheet compares manual collection
+hours with setup and recurring review hours for a three-month pilot.
+The [technical trace](https://safetymp.github.io/SOC-2/#technical) retains the customer request, response and selected packet. Follow collection, reconciliation and handoff, then compare alternative evidence for the same request. Bookmark the current URL to reopen your selection.
 
 [Public project overview](https://safetymp.github.io/SOC-2/about.html) ·
 [Interactive sample](https://safetymp.github.io/SOC-2/)
@@ -41,7 +46,7 @@ With the repository's Python dependencies and OPA installed:
 python3 scripts/export_workspace.py --output /tmp/soc2-workspace-report.json
 ```
 
-Use **Open report** in the workspace to open that JSON locally. The exporter
+Open the separate fixture viewer locally at `http://127.0.0.1:4173/?local=viewer` with the server above. Use **Open report** in that viewer to open that JSON locally. The exporter
 evaluates repository fixtures only; it does not contact providers, run live
 sensors, or push to an evidence locker. It writes the requested JSON output
 without replacing the engine's existing evidence outputs.

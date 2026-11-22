@@ -1,4 +1,4 @@
-import {deployments,changes,marks,reviewRow,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
+import {packetTrace,quarterDeployments,quarterPackets,releasePackets,evidenceActions,evidenceReturns,evidenceDecision,pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
 
 const paths={grid:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',flag:'M5 21V3m0 1h13l-3 5 3 5H5',shield:'M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6z M8 12l3 3 5-6',file:'M14 3H5v18h14V8z M14 3v5h5 M8 12h8 M8 16h6',layers:'M12 3l9 5-9 5-9-5z M3 12l9 5 9-5 M3 16l9 5 9-5',arrow:'M5 12h14 M13 6l6 6-6 6',down:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5',search:'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',book:'M12 5v16 M12 5C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-3-1-6-2-10 1',check:'M5 12l4 4L19 6',close:'M6 6l12 12 M6 18L18 6',clock:'M12 8v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',key:'M14 4a5 5 0 1 1-3 9L4 20H1v-3l8-8a5 5 0 0 1 5-5z',info:'M12 11v6 M12 7h.01 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',refresh:'M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 2 M4 17l2 2a8 8 0 0 0 13-2',code:'M8 5l-6 7 6 7 M16 5l6 7-6 7',external:'M14 3h7v7 M21 3L10 14 M10 3H3v18h18v-7'};
 const icon=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.shield}"/></svg>`;
@@ -38,64 +38,213 @@ async function setReport(data,restoredNotes=null,isImported=false) {
   render();
 }
 function header(title,description,eyebrow='READINESS AT A GLANCE',extra='') {return `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div><div class="heading-actions">${extra}<button class="button secondary" data-action="export">${icon('down')} Export review</button></div></div>`;}
-function visibleNavItems() {return canShowCase() ? [['case','book','Change workpaper'], ['technical','code','Technical guide'], ...navItems] : navItems;}
+function visibleNavItems() {return canShowCase() ? [['case','book','Release case'], ['technical','code','Technical guide']] : navItems;}
 function nav() {document.querySelector('#navigation').innerHTML=visibleNavItems().map(([id,i,label])=>`<a href="#${id}" class="${page===id?'active':''}" ${page===id?'aria-current="page"':''}>${icon(i)}<span>${label}</span>${id==='attention'?`<span class="count">${report.controls.filter(c=>ATTENTION.includes(c.status)).length}</span>`:''}</a>`).join('');document.querySelector('#breadcrumb').textContent=visibleNavItems().find(n=>n[0]===page)[2];}
 function row(c) {const note=notes[c.id];const saved=note && (note.owner||note.note||reviewProgress(note)!=='Not started');return `<tr><td><div class="control-title-row"><span class="control-icon">${icon(c.kind==='technical'?'shield':'file')}</span><div><button class="control-title" data-control="${c.id}">${h(controlTitle(c))}</button><span class="control-id">${c.id}</span>${saved?`<div class="plan-summary"><span class="plan-badge">${icon('check')} Plan saved · ${h(reviewProgress(note))}</span>${note.owner?`<span>${h(note.owner)}</span>`:''}${note.note?`<span class="plan-excerpt">${h(note.note.length>110?note.note.slice(0,107)+'…':note.note)}</span>`:''}</div>`:''}</div></div></td><td class="domain-col">${h(domainLabel(c.domain))}</td><td>${status(c)}</td><td class="criticality-col"><span class="criticality ${c.criticality<3?'medium':''}"><i aria-hidden="true"><b></b><b></b><b></b></i>${c.criticality===3?'High':c.criticality===2?'Medium':'Low'}</span></td><td><button class="row-open" data-control="${c.id}" aria-label="Inspect ${c.id}">${icon('arrow')}</button></td></tr>`;}
 function table(controls) {return `<div class="table-wrap"><table class="control-table"><thead><tr><th scope="col">Control</th><th scope="col" class="domain-col">Domain</th><th scope="col">Result</th><th scope="col" class="criticality-col">Priority</th><th scope="col"><span class="muted" aria-label="Actions"></span></th></tr></thead><tbody>${controls.map(row).join('')}</tbody></table></div>`;}
-const canShowCase = () => !real() && !imported && new URLSearchParams(location.search).get('local') !== '1';
-const workpaper = Object.fromEntries(deployments.map(row => [row.id, {pr:'', mark:''}]));
-let activeRow = 0;
-let archiveOpen = false;
-let reviewed = false;
+const requests = {
+  settings: {label: 'Settings at collection', evidence: ['Settings snapshot']},
+  release: {label: 'One production release', evidence: ['Settings snapshot','Release approvals']},
+  quarter: {label: 'Changes throughout the quarter', evidence: ['Settings snapshot','Release approvals','Quarter’s release population']}
+};
 
-function register() {
-  return changes.filter(change => archiveOpen || !change.archived);
+let selectedRequest = 'release';
+let selectedAction = '';
+let returnedEvidence = 'pending';
+const pilotAssumptions = {repositories: 8, manualMinutes: 25, collectorMinutes: 10, setupHours: 4};
+const canShowCase = () => !real() && !imported && !(localWorkspace && ['1','viewer'].includes(new URLSearchParams(location.search).get('local')));
+function caseResponse() {
+  const request = requests[selectedRequest];
+  const records = request.evidence.map((name, index) => `<li class="${index ? 'needed' : 'held'}"><span>${name}</span><small>${index ? 'Outside fixture' : 'In fixture'}</small></li>`).join('');
+  return `<figure class="scope-figure scope-${selectedRequest}"><figcaption>Illustrative timeline · ${request.label}</figcaption>
+    <div class="scope-track" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="scope-axis"><span>Quarter opens</span><span>${selectedRequest === 'settings' ? 'Settings observed' : 'Release under review'}</span><span>Quarter closes</span></div>
+    </figure><figure class="record-map"><figcaption>Records for this request</figcaption><ol>${records}</ol></figure>`;
 }
-function paperDetail() {
-  const release = deployments[activeRow];
-  const entry = workpaper[release.id];
-  const selected = register().find(change => change.pr === entry.pr);
-  const option = (value,label,current) => `<option value="${value}" ${value === current ? 'selected' : ''}>${label}</option>`;
-  const trace = selected ? `<h3>PR #${selected.pr} · Event transcript</h3><ol class="transcript">${[
-    ...(selected.approvals || []).map(([name,time]) => [time, name + ' approved']),
-    [selected.merge,'Merged into production branch']
-  ].sort(([a],[b]) => a.localeCompare(b)).map(([time,event]) => `<li><time>${time}</time>${event}</li>`).join('')}</ol>${selected.approvals ? '' : '<p class="paper-note">Review event export unavailable. The merge record is on file.</p>'}` : '<p>Select a register entry to inspect its merge and approval events.</p>';
-  return `<p class="folio">Source inspection · All times UTC</p><h2>${release.id} <small>/ ${release.date}</small></h2><p>Deployment receipt <code>${release.sha}</code> entered production at <b>${release.time}</b>.</p>
-    <label for="paper-pr">Change register · Match by commit</label><select id="paper-pr">${option('','No change linked',entry.pr)}${register().map(c => option(c.pr,`#${c.pr} · ${c.sha}`,entry.pr)).join('')}</select>
-    <div class="paper-trace">${trace}</div>
-    <label for="paper-mark">Preparer’s tickmark for ${release.id}</label><select id="paper-mark">${option('','Unmarked',entry.mark)}${Object.entries(marks).map(([key,label]) => option(key,label,entry.mark)).join('')}</select>`;
+
+function actionOutcome() {
+  const outcome = evidenceDecision(selectedRequest, selectedAction, returnedEvidence);
+  if (!outcome) return '<p>Choose a response to see what the compliance lead can report and who acts next.</p>';
+  const interpretation = `<p class="eyebrow">${outcome.simulated ? 'Hypothetical return' : 'With the current fixture'}</p>
+    <h3>${outcome.title}</h3><dl><dt>Customer response</dt><dd>${outcome.claim}</dd>
+    <dt>Next owner · ${outcome.owner}</dt><dd>${outcome.next}</dd></dl>`;
+  if (!outcome.simulated) return interpretation;
+  const packet = selectedAction === 'release' ? releasePacketView() : quarterPacketView();
+  return `${packet}<details class="packet-reading"><summary>Compare your reading with the case interpretation</summary>${interpretation}</details>`;
 }
+
+function releasePacketView() {
+  const packet = releasePackets[returnedEvidence];
+  return `<figure class="release-packet"><figcaption>${packet.label} · REL-204</figcaption>
+    <p>Illustrative records from one day, in UTC. Which approvals can you link to the merged commit?</p>
+    <ol>${packet.events.map(record => `<li><time>${record.time}</time><span>${record.event}</span></li>`).join('')}</ol></figure>`;
+}
+
+function quarterPacketView() {
+  const packet = quarterPackets[returnedEvidence];
+  const approvals = packet.sample.length ? `<dl class="sample-approvals">
+    ${packet.sample.map(row => `<div><dt>${row.release}</dt><dd>${row.approvals.join(' and ')}</dd></div>`).join('')}</dl>` :
+    '<p>The packet includes no sampled approval records.</p>';
+  return `<figure class="release-packet quarter-packet"><figcaption>${packet.label} · April–June 2026</figcaption>
+    <p>Compare the two illustrative inventories. The agreed sample takes every other release in deployment order, starting with the first, once the inventories reconcile.</p>
+    <dl class="period-records"><dt>Delivery log</dt><dd>${quarterDeployments.join(' · ')}</dd>
+    <dt>Change register</dt><dd>${packet.register.join(' · ')}</dd></dl>
+    <h4>Reviewers with documented approval before merge</h4>${approvals}
+    <p>Which releases can the compliance lead describe to the customer?</p></figure>`;
+}
+
+function returnOptions() {
+  const choices = evidenceReturns[selectedAction];
+  if (!choices) return '';
+  return `<label class="case-select">Simulate a response from the owner<select id="evidence-return">
+    ${Object.entries(choices).map(([value, label]) => `<option value="${value}" ${returnedEvidence === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+    <p class="case-return-note">These possible replies explore what happens next. The bundled fixture contains only the settings snapshot.</p>`;
+}
+
+function compareActions() {
+  return Object.entries(evidenceActions).map(([key, label]) => {
+    const initial = evidenceDecision(selectedRequest, key);
+    return `<div><dt>${label}</dt><dd>${initial.title}. Next owner: ${initial.owner}.</dd></div>`;
+  }).join('');
+}
+
+function decisionForm() {
+  return `<fieldset class="case-actions"><legend>How will the platform control owner respond?</legend>
+    ${Object.entries(evidenceActions).map(([key, label]) => `<label><input type="radio" name="evidence-action" value="${key}" ${selectedAction === key ? 'checked' : ''}>${label}</label>`).join('')}
+    </fieldset><div id="return-options">${returnOptions()}</div>
+    <div class="case-disposition" id="action-outcome" aria-live="polite">${actionOutcome()}</div>
+    <details class="case-comparison"><summary>Compare the three initial responses</summary><dl id="compare-actions">${compareActions()}</dl></details>`;
+}
+
+function barRow(label, value, max, display) {
+  return `<div class="case-bar"><span>${label}</span><progress aria-label="${label}" value="${value}" max="${max}"></progress><b>${display}</b></div>`;
+}
+
+function pilotResult() {
+  const result = pilotHours(pilotAssumptions);
+  if (!result) return 'Enter valid values in all four fields to calculate the comparison.';
+  const format = value => value.toLocaleString('en-US', {maximumFractionDigits: 2});
+  const balance = result.saved === 0 ? 'Both options use the same time.' :
+    `The collector takes ${format(Math.abs(result.saved))} ${Math.abs(result.saved) === 1 ? 'hour' : 'hours'} ${result.saved > 0 ? 'less' : 'more'}.`;
+  const scale = Math.max(1, result.manual, result.collector);
+  return `<figure class="case-chart"><figcaption>Team hours over three months</figcaption>
+    ${barRow('Manual collection', result.manual, scale, format(result.manual) + ' h')}
+    ${barRow('Local pilot including setup', result.collector, scale, format(result.collector) + ' h')}
+    </figure><strong>${balance}</strong> Recovering setup requires saving ${format(result.threshold)} minutes per repository per month.`;
+}
+
 function caseView() {
-  const marked = deployments.filter(row => workpaper[row.id].mark).length;
-  return `<article class="workpaper"><header><p class="folio">Internal assurance &nbsp; / &nbsp; Change management &nbsp; / &nbsp; WP 08</p><h1>Close the October change file.</h1><p>Platform engineering handed you four production receipts. Prepare the evidence schedule for the assurance manager before the customer review.</p></header>
-    <div class="paper-rule"><b>Test attribute</b><span>Trace each deployed commit to its change record. Verify that two distinct reviewers approved before merge.</span></div>
-    <div class="paper-desk"><section><p class="folio">Production log · Full October exercise population</p><h2>Deployment ledger</h2><p>Open each receipt, link the change and record your finding.</p>
-    <div class="paper-ledger">${deployments.map((r,i) => `<button data-receipt="${i}" aria-pressed="${activeRow===i}"><span><b>${r.id}</b><small>${r.date}</small></span><code>${r.sha}</code><span>${marks[workpaper[r.id].mark] || 'Unmarked'}</span></button>`).join('')}</div>
-    <div class="paper-request"><strong>Platform records desk</strong><p>${archiveOpen ? 'Owner returned the archived change. Its commit is now indexed in the register.' : 'If a deployment is absent from the register, ask the owner to check archived changes.'}</p><button id="paper-archive" ${archiveOpen?'disabled':''}>${archiveOpen?'Archive received':'Request archive extract'}</button></div></section>
-    <section class="document-leaf" id="paper-detail">${paperDetail()}</section></div>
-    <section class="paper-handoff"><h2>Manager review</h2><p><b>${marked} of 4</b> receipts marked. Send your current schedule for a second reading, then revise the working paper as evidence arrives.</p><button id="paper-submit">Send for review</button>
-    ${reviewed ? reviewSummary() : ''}</section><p class="paper-note">Synthetic training records. Your tickmarks stay in this tab. The configuration assessment and its recorded verdicts are separate. <a href="#technical">Technical reference</a></p></article>`;
+  const control = report.controls.find(item => item.id === 'CTRL-CHG-002');
+  const input = (key, label, min, max) => `<label>${label}<input data-pilot="${key}" type="number" min="${min}" max="${max}" step="1" required value="${Number.isFinite(pilotAssumptions[key]) ? pilotAssumptions[key] : ''}"></label>`;
+  return `<article class="change-case">
+    <header class="case-head"><div class="case-intro"><p class="eyebrow">Change management · Synthetic case</p>
+      <h1>Who approved the release?</h1>
+      <p>A customer’s vendor-risk reviewer asks who approved a production release. You lead compliance at the service provider. Your platform owner sends a passing branch-settings check. What can you tell the customer?</p></div>
+      <div class="case-record"><p class="eyebrow">Recorded fixture</p><h2>Required reviews</h2>
+        <div class="case-record-line"><code>core-service</code><span class="review-marks" aria-hidden="true">● ●</span><b>2</b></div>
+        <div class="case-record-line"><code>infra-modules</code><span class="review-marks" aria-hidden="true">● ●</span><b>2</b></div>
+        <p>${status(control)} <span>CTRL-CHG-002</span></p>
+        <p class="record-note">The fixture records a rule requiring two approvals in each repository. It contains no individual sign-offs.</p>
+      </div></header>
+    <section class="case-section"><h2>What did the customer request?</h2>
+      <p>Keep the same record and change the scope of the question.</p>
+      <label class="case-select">Evidence requested<select id="case-request">${Object.entries(requests).map(([key, entry]) => `<option value="${key}" ${selectedRequest === key ? 'selected' : ''}>${entry.label}</option>`).join('')}</select></label>
+      <div id="case-response" class="case-response" aria-live="polite">${caseResponse()}</div>
+      ${decisionForm()}
+    </section>
+    <section class="case-section"><p class="eyebrow">Business case</p><h2>Would you fund three months of local collection?</h2>
+      <p>As compliance lead, you sponsor the pilot and decide whether to expand it. The platform control owner times two ways of gathering the same three GitHub settings checks each month. Include collection, review and follow-up in both estimates. Release approvals still need their own records.</p>
+      <div class="case-inputs">${input('repositories','Repositories',1,10000)}${input('manualMinutes','Manual collection and review minutes per repository',0,10000)}${input('collectorMinutes','Collector and review minutes per repository',0,10000)}${input('setupHours','One-time setup hours',0,10000)}</div>
+      <div class="case-response" id="pilot-result" aria-live="polite">${pilotResult()}</div>
+      <p>These starting values are illustrative. Use the same repositories for both methods. At the end of month three, ask a second reviewer to retrieve the dated source for each observation and identify every unreadable setting. Expand only if the team recovers its setup time, every observation remains traceable and all evidence gaps are visible. Otherwise keep manual collection for the affected repositories.</p>
+      <label class="case-select">Sponsor decision<select id="sponsor">${Object.entries({'':'Choose a funding decision',hold:'Retain manual collection',pilot:'Authorize the measured pilot',expand:'Consider expansion'}).map(([key,label])=>`<option value="${key}" ${sponsor===key?'selected':''}>${label}</option>`).join('')}</select></label><p id="sponsor-memo" aria-live="polite">${sponsorMemo()}</p>
+    </section>
+    <p class="case-links"><a href="#technical">Inspect the method, sources and report</a></p></article>`;
 }
-function reviewSummary() {
-  const results = deployments.map(row => reviewRow(row,workpaper[row.id].pr,workpaper[row.id].mark,archiveOpen));
-  const returned = results.filter(result => !result.accepted).length;
-  const count = key => deployments.filter(row => workpaper[row.id].mark === key).length;
-  const tally = (key, label) => `${count(key)} ${label}${count(key) === 1 ? '' : 's'}`;
-  return `<div class="review-slip" id="paper-review" tabindex="-1"><h3>${returned ? `Returned for revision · ${returned} of 4 rows` : 'Schedule accepted for handoff'}</h3>
-    <p>${returned ? 'Revisit the indicated source links and tickmarks before sending the schedule onward.' : `Report ${count('supported')} supported, ${tally('deviation','deviation')} and ${tally('open','open request')}. Assign the exceptions and outstanding records to their owners before the customer review.`}</p>
-    <ul>${results.map((result,i) => `<li><b>${deployments[i].id} · ${result.accepted?'Filed':'Revise'}</b> — ${result.note}</li>`).join('')}</ul></div>`;
+
+const traceStages = ['Collection', 'Reconciliation', 'Handoff'];
+let stage = 0;
+let trial = 'matched';
+let sponsor = '';
+const caseQuery = new URLSearchParams(location.search);
+if (Object.hasOwn(requests, caseQuery.get('scope'))) selectedRequest = caseQuery.get('scope');
+if (Object.hasOwn(evidenceActions, caseQuery.get('action'))) selectedAction = caseQuery.get('action');
+if (Object.hasOwn(evidenceReturns[selectedAction] || {}, caseQuery.get('packet'))) returnedEvidence = caseQuery.get('packet');
+if (['matched','missing','exception'].includes(caseQuery.get('trial'))) trial = caseQuery.get('trial');
+if (selectedRequest === 'settings' && trial === 'exception') trial = 'matched';
+if (['0','1','2'].includes(caseQuery.get('stage'))) stage = Number(caseQuery.get('stage'));
+if (['hold','pilot','expand'].includes(caseQuery.get('sponsor'))) sponsor = caseQuery.get('sponsor');
+for (const key of Object.keys(pilotAssumptions)) {
+  if (!caseQuery.has(key)) continue;
+  const n = Number(caseQuery.get(key));
+  if (Number.isInteger(n) && n >= (key==='repositories'?1:0) && n<=10000) pilotAssumptions[key] = n;
+}
+function saveSelection() {
+  const url = new URL(location.href);
+  for (const [key,value] of Object.entries({scope:selectedRequest,action:selectedAction,packet:returnedEvidence,stage,trial,sponsor,...pilotAssumptions})) {
+    if (value === '' || Number.isNaN(value)) url.searchParams.delete(key);
+    else url.searchParams.set(key,value);
+  }
+  history.replaceState(null,'',url);
+}
+function sponsorMemo() {
+  const hours = pilotHours(pilotAssumptions);
+  if (!sponsor || !hours) return '';
+  const savings = hours.saved.toLocaleString('en-US',{maximumFractionDigits:2});
+  if (sponsor === 'hold') return `Manual collection continues. Record the modeled three-month difference (${savings} hours saved by the pilot) and review again after timing the next collection.`;
+  if (sponsor === 'pilot') return `Approve ${pilotAssumptions.setupHours} setup hours for ${pilotAssumptions.repositories} repositories. Time the same checks each month and have a second reviewer retrieve the source for each observation.`;
+  return hours.saved <= 0 ? 'Expansion returns to the sponsor. The model shows no net hours recovered; remeasure collection effort before broadening scope.' : `Expansion remains conditional. The model recovers ${savings} hours. Verify source retrieval and record every unreadable setting before authorizing additional repositories.`;
 }
 function caseGuide() {
-  const component = (path,name,description) => `<div><dt><a href="${repo}/blob/main/${path}">${name}</a></dt><dd>${description}</dd></div>`;
-  return `<article class="workpaper reference"><p class="folio">WP 08 / Implementation reference</p><h1>From settings to a finding</h1><p>The worksheet adds invented deployment and approval records for training. The real assessment measures three GitHub configuration checks on one explicitly selected repository.</p>
-  <dl>${component('scripts/assess_github.py','Collect · Python + GitHub CLI','Reads branch protection, required checks and active workflow presence. Credentials stay with the local CLI.')}
-  ${component('engine/evaluator.py','Evaluate · OPA / Rego','Evaluates normalized evidence against control policies. An unreadable setting remains missing.')}
-  ${component('scripts/serve_workspace.py','Inspect · Loopback viewer','Opens one selected JSON report locally. Review notes are separate from policy verdicts.')}
-  ${component('scripts/export_workspace.py','Reproduce · Fixture exporter','Builds the bundled synthetic report from fixtures and procedural manifests. The exercise uses CTRL-CHG-002 as its configuration context.')}</dl>
-  <p><a href="./data/sample-report.json">Fixture report</a> · <a href="${repo}/blob/main/docs/local-github-assessment.md">Local setup</a></p>
-  <details><summary>Why prepare a working paper?</summary><p>The AICPA illustrative Type 2 report distinguishes tests of controls and their results. The exercise also borrows the general documentation practice of identifying tested items and explaining findings. It models internal preparation and yields no audit opinion.</p><a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA illustrative report</a> · <a href="https://pcaobus.org/oversight/standards/auditing-standards/details/AS1215">PCAOB AS 1215, audit documentation</a></details></article>`;
+  const control = report.controls.find(c => c.id === 'CTRL-CHG-002');
+  const scope = selectedRequest;
+  const packets = scope === 'quarter' ? quarterPackets : releasePackets;
+  const response = evidenceDecision(scope, selectedAction, returnedEvidence);
+  const selected = evidenceReturns[selectedAction]?.[returnedEvidence] || 'Dated settings only';
+  let detail;
+  if (stage === 0) {
+    detail = `<p><b>${control.status} · ${control.id}</b> evaluated the review and status-check settings for two repositories. The fixture captures no event-level approvals.</p><code>${h(control.source.payload)}</code>`;
+  } else if (stage === 1) {
+    const selectedTrace = returnedEvidence !== 'pending' && ['release','quarter'].includes(selectedAction)
+      ? packetTrace(selectedAction, returnedEvidence) : '';
+    detail = `<p>${scope === 'quarter' ? 'Reconcile the April–June deployment inventory to the change register, then inspect the agreed sample.' : scope === 'release' ? 'Follow REL-204 to its deployed commit, then compare PR #62 approval times to the merge.' : 'Match the dated configuration observation to its repository and policy.'}</p><p>Selected owner return: <b>${selected}</b>.</p>${selectedTrace}`;
+  } else {
+    detail = response ? `<p><b>${response.owner}</b> · ${response.next}</p><p>${response.claim}</p>` : '<p>Return to the case and choose the platform owner’s response to trace the handoff to a named owner.</p>';
+  }
+  const target = scope === 'quarter' ? 'April–June 2026' : scope === 'release' ? 'REL-204' : 'Settings at collection';
+  const tabs = traceStages.map((name,i) => `<button data-stage="${i}" aria-pressed="${i===stage}">${name}</button>`).join('');
+  const configurationTrials = {matched:'Readable settings',missing:'Unavailable settings'};
+  const choices = scope === 'settings' ? configurationTrials : Object.fromEntries(Object.entries(packets).map(([key,p])=>[key,p.label]));
+  const comparison = scope === 'settings' ? (trial === 'missing' ? 'An unreadable branch configuration leaves the check missing. Request access or ask the repository owner to collect it locally.' : 'The fixture records a two-review requirement on core-service and infra-modules. The policy returns PASS for these configuration fields.') : packetTrace(scope, trial);
+  return `<article class="change-case trace-guide"><p class="eyebrow">Implementation evidence · Synthetic case</p><h1>Trace ${target}</h1>
+    <p>Customer request: <b>${requests[scope].label}</b> · Platform response: <b>${evidenceActions[selectedAction] || 'Undecided'}</b> · Owner return: <b>${selected}</b>.</p>
+    <div class="trace-stages" role="group" aria-label="Trace stage">${tabs}</div><div class="trace-record" id="trace-record">${detail}</div>
+    <h2>Compare evidence returns</h2><label class="case-select">Illustrative comparison for ${target}<select id="trace-trial">${Object.entries(choices).map(([key,label])=>`<option value="${key}" ${trial===key?'selected':''}>${label}</option>`).join('')}</select></label>
+    <div class="trace-comparison">${comparison}</div>
+    <details><summary>Components, fixture and research</summary><p><a href="${repo}/blob/main/scripts/assess_github.py">Python collector</a> reads three GitHub settings checks locally. <a href="${repo}/blob/main/policies/change_mgmt/branch_protection_enforced.rego">OPA policy</a> evaluates branch settings. <a href="${repo}/blob/main/scripts/export_workspace.py">Fixture exporter</a> produces the <a href="./data/sample-report.json">bundled JSON report</a>. The operating records compared above are illustrative.</p><p><a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA’s illustrative Type 2 report</a> distinguishes control tests and results. <a href="https://csrc.nist.gov/pubs/sp/800/53/a/r5/final">NIST SP 800-53A</a> frames assessment objectives and evidence procedures.</p></details>
+    <p><a href="#case">Return to the customer and funding decision</a></p></article>`;
 }
-
+function refreshTrace(selector) {
+  saveSelection();
+  main.innerHTML = caseGuide();
+  main.querySelector(selector)?.focus({preventScroll:true});
+}
+document.addEventListener('click',event=>{
+  const button = event.target.closest('[data-stage]');
+  if (!button) return;
+  stage = Number(button.dataset.stage);
+  refreshTrace(`[data-stage="${stage}"]`);
+});
+document.addEventListener('change',event=>{
+  if (event.target.id === 'trace-trial') {
+    trial = event.target.value;
+    refreshTrace('#trace-trial');
+  } else if (event.target.id === 'sponsor') {
+    sponsor = event.target.value;
+    document.querySelector('#sponsor-memo').textContent = sponsorMemo();
+    saveSelection();
+  }
+});
 function overview() {
   const s=report.summary, attention=prioritySort(report.controls.filter(c=>ATTENTION.includes(c.status))), wired=report.controls.filter(c=>c.status!=='UNWIRED');
   const tech=wired.filter(c=>c.kind==='technical').length, proc=wired.length-tech;
@@ -190,36 +339,32 @@ document.addEventListener('click',async event=>{
   }
   if(action==='confirm-reset'){if(real())realReviews.delete(storageKey);if(!real()){try{localStorage.removeItem(storageKey);}catch{}}imported=false;help.close();await setReport(sample);navigate('overview');notify('Current report’s notes cleared. Sample restored.');}
 });
-function refreshPaper(focus) {
-  main.innerHTML = caseView();
-  main.querySelector(focus)?.focus({preventScroll:true});
-}
-document.addEventListener('click', event => {
-  const receipt = event.target.closest('[data-receipt]');
-  if (receipt) {
-    activeRow = Number(receipt.dataset.receipt);
-    refreshPaper('#paper-pr');
-    document.querySelector('#paper-detail').scrollIntoView({block:'nearest'});
-  } else if (event.target.id === 'paper-archive') {
-    archiveOpen = true;
-    reviewed = false;
-    refreshPaper('#paper-pr');
-  } else if (event.target.id === 'paper-submit') {
-    reviewed = true;
-    refreshPaper('#paper-review');
-    document.querySelector('#paper-review').scrollIntoView({block:'nearest'});
-  }
+document.addEventListener('change',event=>{
+  const field = event.target;
+  if (field.id === 'case-request') {
+    selectedRequest = field.value;
+    returnedEvidence = 'pending';
+    document.querySelector('#case-response').innerHTML = caseResponse();
+    document.querySelector('#compare-actions').innerHTML = compareActions();
+  } else if (field.name === 'evidence-action') {
+    selectedAction = field.value;
+    returnedEvidence = 'pending';
+  } else if (field.id === 'evidence-return') {
+    returnedEvidence = field.value;
+  } else return;
+  if (field.id !== 'evidence-return') document.querySelector('#return-options').innerHTML = returnOptions();
+  if (field.id === 'case-request') trial = 'matched';
+  if (returnedEvidence !== 'pending' && (selectedRequest !== 'settings' || returnedEvidence !== 'exception')) trial = returnedEvidence;
+  saveSelection();
+  document.querySelector('#action-outcome').innerHTML = actionOutcome();
 });
-document.addEventListener('change', event => {
-  const {id, value} = event.target;
-  if (id !== 'paper-pr' && id !== 'paper-mark') return;
-  const entry = workpaper[deployments[activeRow].id];
-  if (id === 'paper-pr') {
-    entry.pr = value;
-    entry.mark = '';
-  } else entry.mark = value;
-  reviewed = false;
-  refreshPaper('#' + id);
+document.addEventListener('input',event=>{
+  const field = event.target;
+  if(!field.matches('[data-pilot]'))return;
+  pilotAssumptions[field.dataset.pilot] = field.validity.valid ? field.valueAsNumber : NaN;
+  document.querySelector('#pilot-result').innerHTML = pilotResult();
+  document.querySelector('#sponsor-memo').textContent = sponsorMemo();
+  saveSelection();
 });
 document.addEventListener('input',e=>{if(e.target.id==='search'){filters.query=e.target.value;renderResults();}});
 document.addEventListener('change',e=>{if(['status-filter','domain-filter','progress-filter'].includes(e.target.id)){const id=e.target.id;filters[{'status-filter':'status','domain-filter':'domain','progress-filter':'progress'}[id]]=e.target.value;render();document.getElementById(id)?.focus();}});
