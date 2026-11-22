@@ -349,3 +349,26 @@ nav .count {background: #50454b; color: #fff;}
 }
 .event-strip li small {display: block; font-size: .78rem; font-weight: 400; color: #59484e;}
 .scenario-note {margin-bottom: -.5rem; color: #59484e;}
+
+.trace-guide .trace-context {margin: 1rem 0; color: #614453;}
+.trace-guide .trace-stages {gap: 0; margin-top: 1rem;}
+.trace-stages button {border-radius: 0; min-height: 2.75rem;}
+.trace-stages button + button {border-left: 0;}
+.trace-panel {margin: .8rem 0; padding: clamp(1rem,2.5vw,1.6rem); border: 1px solid #d4c1ca; background: #fff;}
+.trace-panel h2 {margin: 0; font: 600 1.55rem/1.2 Georgia,serif;}
+.policy-input {border: 0; padding: 0; margin: 1.3rem 0 .8rem;}
+.policy-input legend,.trace-fields dt,.policy-flow dt {font-weight: 650; color: #593047;}
+.policy-input legend {margin-bottom: .4rem;}
+.policy-flow {display: grid; grid-template-columns: 1.2fr .7fr 2fr; margin: 1rem 0; background: #faf4f5;}
+.policy-flow div,.trace-fields div {padding: .65rem .85rem; border-left: 2px solid #b78198;}
+.policy-flow dd,.trace-fields dd {margin: .2rem 0 0;}
+.trace-caption,.trace-file {font-size: .93rem;}
+.trace-fields {display: grid; gap: .65rem;}
+.trace-compare,.trace-sources {padding-block: .6rem;}
+.trace-compare summary,.trace-sources summary {color: #68233f; font-weight: 600;}
+.trace-compare .case-select {margin-top: .8rem;}
+.trace-guide code {overflow-wrap: anywhere;}
+@media (max-width: 640px) {
+  .policy-flow {grid-template-columns: 1fr;}
+  .trace-stages button {flex: 1; padding-inline: .35rem;}
+}

@@ -96,8 +96,8 @@ function actionOutcome() {
     </div>`;
 }
 
-function releasePacketView() {
-  const packet = releasePackets[returnedEvidence];
+function releasePacketView(key = returnedEvidence) {
+  const packet = releasePackets[key];
   const merge = packet.events.find(event => event.kind === 'merge');
   if (!merge) return `<figure class="release-packet lone-ticket"><figcaption>Deployment ticket · REL-204</figcaption>
     <p><time>${packet.events[0].time} UTC</time> · ${packet.events[0].event}</p></figure>`;
@@ -109,9 +109,9 @@ function releasePacketView() {
     }).join('')}</ol><small>At merge, the team accepts the change. At deployment, that version reaches the drivers.</small></figure>`;
 }
 
-function quarterPacketView() {
-  const packet = quarterPackets[returnedEvidence];
-  return `<figure class="release-packet quarter-packet"><figcaption>${recordNames.quarter[returnedEvidence]} · April–June 2026</figcaption>
+function quarterPacketView(key = returnedEvidence) {
+  const packet = quarterPackets[key];
+  return `<figure class="release-packet quarter-packet"><figcaption>${recordNames.quarter[key]} · April–June 2026</figcaption>
     <p>Match the change register to the deployment log. The agreed sample takes every other release, starting with the first, after the lists reconcile.</p>
     <dl class="period-records"><dt>Deployment log</dt><dd>${quarterDeployments.join(' · ')}</dd><dt>Change register</dt><dd>${packet.register.join(' · ')}</dd></dl>
     ${packet.sample.length ? `<h4>Documented approvals before merge</h4><dl class="sample-approvals">${packet.sample.map(row => `<div><dt>${row.release}</dt><dd>${row.approvals.join(' and ')}</dd></div>`).join('')}</dl>` : '<p>No sample records enclosed.</p>'}</figure>`;
@@ -188,7 +188,12 @@ function caseView() {
   </article>`;
 }
 
-const traceStages = ['Collection', 'Reconciliation', 'Handoff'];
+const traceStages = ['Check settings', 'Trace the record', 'Handoff'];
+const policyExamples = {
+  matched: {label:'Two reviews required', input:'2 required reviews · status checks required', result:'PASS', action:'Priya can reuse this dated settings observation in the customer review.'},
+  weak: {label:'One review required', input:'1 required review · status checks required', result:'FAIL', action:'The repository owner can raise the review requirement and rerun collection to verify the change.'},
+  missing: {label:'Settings unavailable', input:'No readable branch configuration', result:'MISSING', action:'The repository owner can check read access and collect again. Priya keeps the question open.'}
+};
 let stage = 0;
 let trial = 'matched';
 let sponsor = '';
@@ -200,7 +205,9 @@ if (Object.hasOwn(requests, caseQuery.get('scope'))) selectedRequest = caseQuery
 if (Object.hasOwn(evidenceActions, caseQuery.get('action'))) selectedAction = caseQuery.get('action');
 if (Object.hasOwn(evidenceReturns[selectedAction] || {}, caseQuery.get('packet'))) returnedEvidence = caseQuery.get('packet');
 if (['matched','missing','exception'].includes(caseQuery.get('trial'))) trial = caseQuery.get('trial');
-if (selectedRequest === 'settings' && trial === 'exception') trial = 'matched';
+let policyExample = Object.hasOwn(policyExamples, caseQuery.get('policy')) ? caseQuery.get('policy') :
+  (selectedRequest === 'settings' && trial === 'missing' ? 'missing' : 'matched');
+let comparingRecords = caseQuery.get('compare') === '1';
 if (['0','1','2'].includes(caseQuery.get('stage'))) stage = Number(caseQuery.get('stage'));
 if (['hold','pilot','expand'].includes(caseQuery.get('sponsor'))) sponsor = caseQuery.get('sponsor');
 for (const key of Object.keys(pilotAssumptions)) {
@@ -217,7 +224,7 @@ if (briefOpen && !selectedAction) {
 let alternateOpen = false;
 function saveSelection() {
   const url = new URL(location.href);
-  for (const [key,value] of Object.entries({scope:briefOpen ? selectedRequest : '',brief:briefOpen ? 'open' : '',action:selectedAction,packet:returnedEvidence,stage,trial,sponsor,mark,followup:ownerFollowUp ? '1' : '',...pilotAssumptions})) {
+  for (const [key,value] of Object.entries({scope:briefOpen ? selectedRequest : '',brief:briefOpen ? 'open' : '',action:selectedAction,packet:returnedEvidence,stage,trial,policy:policyExample,compare:comparingRecords?'1':'',sponsor,mark,followup:ownerFollowUp ? '1' : '',...pilotAssumptions})) {
     if (value === '' || Number.isNaN(value)) url.searchParams.delete(key);
     else url.searchParams.set(key,value);
   }
@@ -233,36 +240,67 @@ function sponsorMemo() {
     : `The model releases ${savings} hours. Before expanding, ask a second reviewer to retrieve each dated observation and flag every unreadable setting.`;
   return hours.saved <= 0 ? 'Expansion returns to the sponsor. The model shows no net hours recovered; remeasure collection effort before broadening scope.' : `Expansion remains conditional. The model recovers ${savings} hours. Verify source retrieval and record every unreadable setting before authorizing additional repositories.`;
 }
+function settingsLab(control) {
+  const example = policyExamples[policyExample];
+  return `<h2>What can GitHub settings establish?</h2>
+    <p>The Python collector reads one repository’s default-branch settings. For this check, Cedarline’s policy requires at least two approving reviews and required status checks.</p>
+    <fieldset class="policy-input"><legend>Try a branch configuration</legend><div class="case-picks">${Object.entries(policyExamples).map(([key,item]) =>
+      `<button data-policy="${key}" aria-pressed="${policyExample===key}">${item.label}</button>`).join('')}</div></fieldset>
+    <dl class="policy-flow" aria-live="polite"><div><dt>Collector input</dt><dd>${example.input}</dd></div>
+      <div><dt>Check result</dt><dd><strong>${example.result}</strong></dd></div>
+      <div><dt>Next action</dt><dd>${example.action}</dd></div></dl>
+    <p class="trace-caption">Illustrative inputs. The saved sample records <b>${h(control.status)}</b> on ${date(control.collected_at)} for ${h(control.id)}. June’s approval history comes from the release owner.</p>`;
+}
+
+function recordLab(source, key, control) {
+  if (source === 'snapshot') return `<h2>Read the dated settings file</h2>
+    <dl class="trace-fields"><div><dt>Observation</dt><dd>${date(control.collected_at)} · ${h(control.id)} · ${h(control.status)}</dd></div>
+    <div><dt>Source in the sample</dt><dd><code>${h(control.source.payload)}</code></dd></div></dl>
+    <p>Both synthetic repositories required two reviews and status checks when collected. A reviewer can reopen this source to check Priya’s statement.</p>`;
+  if (key === 'pending') return `<h2>Waiting for the owner’s record</h2><p>Priya has requested the ${sourceLabels[source].toLowerCase()}. The owner’s file is needed to trace the change.</p>`;
+  const release = source === 'release';
+  const renderPacket = release ? releasePacketView : quarterPacketView;
+  const name = recordNames[source][key];
+  const options = Object.entries(recordNames[source]).map(([value,label]) =>
+    `<option value="${value}" ${trial===value?'selected':''}>${label}</option>`).join('');
+  return `<h2>${release ? 'Which version reached the drivers?' : 'Which releases can Priya test?'}</h2>
+    <p>${release ? 'Start at deployment. Look for the same version at merge, then use the change number to find its approvals.' : 'Match the deployment log to the register before checking the approval records for the agreed sample.'}</p>
+    <p class="trace-file"><b>${name}</b> · ${briefOpen ? 'Case record' : 'Example record'}</p>${renderPacket(key)}
+    <details class="trace-compare" ${comparingRecords?'open':''}><summary>Compare an alternative record</summary>
+    <label class="case-select">Comparison file<select id="trace-trial">${options}</select></label>
+    <div class="trace-comparison">${trial===key ? '<p>This is the file shown above. Choose another to inspect the difference.</p>' : packetTrace(source,trial)}</div></details>`;
+}
+
+function reviewHandoff() {
+  const response = evidenceDecision(selectedRequest, selectedAction, returnedEvidence);
+  const review = reviewWorkpaper(selectedAction, returnedEvidence, mark);
+  if (!response) return '<h2>Prepare a customer reply</h2><p>Open the June record in the case and make a finding. Its review and next owner will appear here.</p>';
+  if (response.simulated && !review?.accepted) return `<h2>${review ? 'Revise the finding' : 'The record is ready for review'}</h2>
+    <p>Priya records what the file supports. A second reviewer checks the finding before Alex gets a reply.</p>`;
+  return `<h2>${response.title}</h2><dl class="trace-fields">
+    ${review?.accepted ? `<div><dt>Accepted finding</dt><dd>${markLabels[selectedAction][mark]}</dd></div>` : ''}
+    <div><dt>What Alex can use</dt><dd>${response.claim}</dd></div><div><dt>Next owner</dt><dd><b>${response.owner}</b> · ${response.next}</dd></div></dl>
+    <p class="trace-caption">Review notes keep the owner and next action with the finding. A new collection is needed to verify a settings change.</p>`;
+}
+
 function caseGuide() {
   const control = report.controls.find(c => c.id === 'CTRL-CHG-002');
-  const scope = selectedRequest;
-  const response = evidenceDecision(scope, selectedAction, returnedEvidence);
-  const selected = recordNames[selectedAction]?.[returnedEvidence] || evidenceReturns[selectedAction]?.[returnedEvidence] || 'Dated settings only';
-  let detail;
-  const prepared = reviewWorkpaper(selectedAction,returnedEvidence,mark);
-  if (stage === 0) {
-    detail = `<p><b>${control.status} · ${control.id}</b> · Review and status-check settings. The local Python collector checks one named repository per run. OPA evaluates its settings and the collector writes a dated report. This public example uses two synthetic repositories. June’s approval times come from a separate release record.</p><code>${h(control.source.payload)}</code>`;
-  } else if (stage === 1) {
-    const selectedTrace = returnedEvidence !== 'pending' && ['release','quarter'].includes(selectedAction)
-      ? packetTrace(selectedAction, returnedEvidence) : '';
-    detail = `<p>${scope === 'quarter' ? 'Reconcile the April–June deployment inventory to the change register, then inspect the agreed sample.' : scope === 'release' ? 'Follow REL-204 to its deployed commit, then compare PR #62 approval times to the merge.' : 'Match the dated configuration observation to its repository and policy.'}</p><p>Selected owner return: <b>${selected}</b>.</p>${selectedTrace}`;
-  } else {
-    if (response?.simulated && !prepared?.accepted) {
-      detail = '<p>Priya prepares the finding. A second reviewer checks it against the record before Alex gets a reply.</p><a href="#case">Review the evidence in the case</a>';
-    } else detail = response ? `<p><b>${response.owner}</b> · ${response.next}</p><p>${response.claim}</p>` : '<p>Return to the case and choose the platform owner’s response to trace the handoff to a named owner.</p>';
-  }
-  const target = scope === 'quarter' ? 'April–June 2026' : scope === 'release' ? 'REL-204' : 'Settings at collection';
-  const tabs = traceStages.map((name,i) => `<button data-stage="${i}" aria-pressed="${i===stage}">${name}</button>`).join('');
-  const configurationTrials = {matched:'Readable settings',missing:'Unavailable settings'};
-  const choices = scope === 'settings' ? configurationTrials : recordNames[scope];
-  const comparison = scope === 'settings' ? (trial === 'missing' ? 'An unreadable branch configuration leaves the check missing. Record the owner and next action. Restore read access, then collect again to obtain a new policy result.' : 'The fixture records a two-review requirement on core-service and infra-modules. The policy returns PASS for these configuration fields. A second reviewer can reopen the dated source.') : packetTrace(scope, trial);
-  return `<article class="change-case trace-guide"><p class="eyebrow">Implementation evidence · Synthetic case</p><h1>Trace ${target}</h1>
-    <p>Customer request: <b>${requests[scope].label}</b> · Platform response: <b>${evidenceActions[selectedAction] || 'Undecided'}</b> · Owner return: <b>${selected}</b>.</p>
-    <div class="trace-stages" role="group" aria-label="Trace stage">${tabs}</div><div class="trace-record" id="trace-record">${detail}${stage===2 && prepared ? `<p><b>Workpaper · ${prepared.accepted ? 'accepted' : 'returned for revision'}</b> · ${markLabels[selectedAction][mark]}</p>` : ''}</div>
-    <h2>Compare evidence returns</h2><label class="case-select">Illustrative comparison for ${target}<select id="trace-trial">${Object.entries(choices).map(([key,label])=>`<option value="${key}" ${trial===key?'selected':''}>${label}</option>`).join('')}</select></label>
-    <div class="trace-comparison">${comparison}</div>
-    <details><summary>Components, fixture and research</summary><p><a href="${repo}/blob/main/scripts/assess_github.py">Python collector</a> reads three GitHub settings checks locally. <a href="${repo}/blob/main/policies/change_mgmt/branch_protection_enforced.rego">OPA policy</a> evaluates branch settings. <a href="${repo}/blob/main/scripts/export_workspace.py">Fixture exporter</a> produces the <a href="./data/sample-report.json">bundled JSON report</a>. The operating records compared above are illustrative.</p><p><a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA’s illustrative Type 2 report</a> distinguishes control tests and results. <a href="https://csrc.nist.gov/pubs/sp/800/53/a/r5/final">NIST SP 800-53A</a> frames assessment objectives and evidence procedures.</p></details>
-    <p><a href="#case">Return to the customer and funding decision</a></p></article>`;
+  const source = selectedAction || 'release';
+  const key = selectedAction ? returnedEvidence : 'matched';
+  const file = recordNames[source]?.[key] || evidenceReturns[source]?.[key] || 'Dated settings file';
+  const target = {settings:'the settings check',release:'REL-204',quarter:'the April–June register'}[selectedRequest];
+  const tabs = traceStages.map((name,i) => `<button type="button" data-stage="${i}" aria-controls="trace-record" aria-pressed="${i===stage}">${name}</button>`).join('');
+  const panel = stage===0 ? settingsLab(control) : stage===1 ? recordLab(source, key, control) : reviewHandoff();
+  return `<article class="change-case trace-guide"><p class="eyebrow">Technical guide · Cedarline Dispatch</p><h1>Trace ${target}</h1>
+    <p>${questions[selectedRequest]} Follow the evidence from repository settings to Priya’s reply.</p>
+    <p class="trace-context"><b>${briefOpen ? 'From your case' : 'June example'}</b> · ${sourceLabels[source]} · ${file}</p>
+    <div class="trace-stages" role="group" aria-label="Evidence workflow">${tabs}</div>
+    <section class="trace-panel" id="trace-record">${panel}</section>
+    <details class="trace-sources"><summary>Implementation and source files</summary>
+    <p>The <a href="${repo}/blob/main/scripts/assess_github.py">local assessment</a> uses read-only GitHub requests for one named repository. It checks branch protection, review requirements and status checks, and active workflow presence. The <a href="${repo}/blob/main/policies/change_mgmt/branch_protection_enforced.rego">Rego policy for this check</a> evaluates readable settings. The collector records unavailable evidence as MISSING.</p>
+    <dl class="trace-fields"><div><dt>Fixture source · ${date(control.collected_at)}</dt><dd><code>${h(control.source.payload)}</code></dd></div><div><dt>Policy query</dt><dd><code>${h(control.source.query)}</code></dd></div></dl>
+    <p><code>evidence.json</code> holds sanitized observations. <code>report.json</code> contains the dated results. Both stay local. The <a href="./data/sample-report.json">public fixture report</a> uses synthetic inputs from two repositories for this check. The release and quarter records are fictional owner-supplied examples.</p></details>
+    <p class="case-links"><a href="#case" id="trace-return">${briefOpen ? 'Return to your case record' : 'Open the business case'}</a></p></article>`;
 }
 function refreshTrace(selector) {
   saveSelection();
@@ -270,13 +308,30 @@ function refreshTrace(selector) {
   main.querySelector(selector)?.focus({preventScroll:true});
 }
 document.addEventListener('click',event=>{
+  if (page !== 'technical') return;
+  if (event.target.closest('#trace-return') && briefOpen && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+    window.addEventListener('hashchange', () => main.querySelector('#brief-title')?.focus(), {once:true});
+  }
+  const input = event.target.closest('[data-policy]');
+  if (input && Object.hasOwn(policyExamples, input.dataset.policy)) {
+    policyExample = input.dataset.policy;
+    refreshTrace(`[data-policy="${policyExample}"]`);
+    return;
+  }
   const button = event.target.closest('[data-stage]');
   if (!button) return;
   stage = Number(button.dataset.stage);
   refreshTrace(`[data-stage="${stage}"]`);
 });
+main.addEventListener('toggle',event=>{
+  if (event.target.matches('.trace-compare') && main.contains(event.target)) {
+    comparingRecords = event.target.open;
+    saveSelection();
+  }
+},true);
 document.addEventListener('change',event=>{
   if (event.target.id === 'trace-trial') {
+    comparingRecords = true;
     trial = event.target.value;
     refreshTrace('#trace-trial');
   } else if (event.target.id === 'sponsor') {
@@ -415,7 +470,7 @@ document.addEventListener('click',event=>{
   const log = event.target.closest('[data-packet]');
   if (log && Object.hasOwn(evidenceReturns[selectedAction] || {},log.dataset.packet)) {
     returnedEvidence = log.dataset.packet;
-    trial = selectedRequest === 'settings' && returnedEvidence === 'exception' ? 'matched' : returnedEvidence;
+    trial = returnedEvidence;
     mark = '';
     ownerFollowUp = false;
     refreshBrief(`[data-packet="${returnedEvidence}"]`);
