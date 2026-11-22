@@ -1,6 +1,6 @@
 # SOC-2 readiness workspace
 
-Cedarline Dispatch is preparing for Eastbank Food Co-op’s Friday rollout review. Follow the change from engineering to the customer, then open the request. Switch between settings at collection, one production release, or a quarter of changes. Choose an evidence source, read the packet and mark what it documents. A second reviewer returns a finding for revision or releases a scoped reply and next owner. Revisit a missing file with a simulated owner follow-up.
+Cedarline Dispatch is preparing for Eastbank Food Co-op’s Friday rollout review. Start with the depot rollout and the purpose of SOC 2. See which settings the local collector can check for Priya, then open the June timeline and decide what the record supports. Switch records to compare the outcomes. The optional evidence-source controls also cover settings at collection and a quarter of changes. A second reviewer returns a finding for revision or releases a scoped reply and next owner. Revisit a missing file with a simulated owner follow-up.
 
 The policy check and the human workpaper have different inputs. The bundled settings check under CTRL-CHG-002 maps to change management (CC8.1). Returned release and quarter packets are synthetic event evidence. A workpaper mark never changes the recorded policy verdict. Choose a three- or eight-repository pilot to compare team hours over three months.
 
