@@ -243,7 +243,7 @@ export function evidenceDecision(scope, action, returned = 'pending') {
   if (returned === 'exception') {
     return {...baseline, simulated: true, title: 'Escalate the observed exception', owner: 'Change owner',
       next: 'Preserve the reviewed record, check for a documented exception and agree follow-up with the compliance lead.',
-      claim: action === 'release' ? 'One of the two recorded approvals occurred after this release was merged.' : 'One sampled change lacks evidence of timely approval. The result for the remaining population is undetermined.'};
+      claim: action === 'release' ? 'One of the two recorded approvals occurred after this release was merged.' : 'For REL-203, the packet documents one of the two required approvals before merge. Whether a second approval occurred before merge is unknown. Changes outside the sample remain untested.'};
   }
 
   const claim = action === 'release' ? 'The linked release has two approvals recorded before merge.' :

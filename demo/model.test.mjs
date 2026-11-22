@@ -316,5 +316,9 @@ test('quarter packets expose the reconciled population and sample before its int
   }
   assert.deepEqual(quarterDeployments.filter(id => !quarterPackets.missing.register.includes(id)), ['REL-204']);
   assert.equal(quarterPackets.missing.sample.length, 0);
+  assert.deepEqual(quarterPackets.exception.sample.find(row => row.release === 'REL-203').approvals, ['Patel']);
+  const exception = evidenceDecision('quarter','quarter','exception');
+  assert.match(exception.claim, /REL-203, the packet documents one of the two required approvals before merge/);
+  assert.match(exception.claim, /Whether a second approval occurred before merge is unknown/);
   assert.match(evidenceDecision('release','quarter','matched').title, /named release still needs a trace/);
 });
