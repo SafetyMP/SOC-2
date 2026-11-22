@@ -238,3 +238,67 @@ test('three-month pilot includes setup, break-even and slower collection', async
   assert.equal(pilotHours({...inputs, collectorMinutes: 30}).saved, -6);
   for (const repositories of [0, -1, 0.5, NaN]) assert.equal(pilotHours({...inputs, repositories}), null);
 });
+
+test('customer requests and owner actions route all nine initial dispositions without inventing evidence', async () => {
+  const {evidenceActions, evidenceDecision} = await import('./model.mjs');
+  const cases = ['settings', 'release', 'quarter'];
+  const titles = new Set();
+  for (const scope of cases) {
+    for (const action of Object.keys(evidenceActions)) {
+      const result = evidenceDecision(scope, action);
+      assert.equal(result.simulated, false);
+      assert.equal(result.claim, 'At collection, both fixture repositories required two reviews.');
+      assert.ok(result.owner && result.next);
+      titles.add(result.title);
+    }
+  }
+  assert.equal(titles.size, 9);
+  assert.equal(evidenceDecision('bad','release'), null);
+  assert.equal(evidenceDecision('release','bad'), null);
+  assert.equal(evidenceDecision('release','release','unknown'), null);
+});
+
+test('hypothetical returns preserve gaps, exceptions and the boundaries of individual and sample claims', async () => {
+  const {evidenceDecision} = await import('./model.mjs');
+  for (const scope of ['settings','release','quarter']) {
+    for (const action of ['release','quarter']) {
+      assert.match(evidenceDecision(scope, action, 'missing').claim, /incomplete/);
+      const exception = evidenceDecision(scope, action, 'exception');
+      assert.equal(exception.title, 'Escalate the observed exception');
+      assert.equal(exception.simulated, true);
+      assert.equal(exception.owner, 'Change owner');
+    }
+  }
+  assert.equal(evidenceDecision('release','release','matched').title, 'Answer for this release');
+  assert.equal(evidenceDecision('quarter','quarter','matched').title, 'Report the sample results');
+  assert.match(evidenceDecision('quarter','quarter','matched').claim, /tested sample/);
+  assert.equal(evidenceDecision('quarter','release','matched').title, 'One release cannot cover the quarter');
+  assert.equal(evidenceDecision('release','quarter','matched').title, 'The named release still needs a trace');
+  assert.equal(evidenceDecision('release','snapshot','matched').simulated,false);
+});
+
+test('a returned release trace leaves a settings-only handoff with the compliance lead', async () => {
+  const {evidenceDecision} = await import('./model.mjs');
+  const result = evidenceDecision('settings', 'release', 'matched');
+  assert.equal(result.owner, 'Compliance lead');
+  assert.equal(result.next, 'Answer the settings question with the dated observation. Ask whether the customer also needs release-specific evidence.');
+  assert.match(result.claim, /linked release has two approvals recorded before merge/);
+});
+
+test('release packets present the sequence before their conditional interpretation', async () => {
+  const {releasePackets, evidenceReturns, evidenceDecision} = await import('./model.mjs');
+  assert.deepEqual(Object.values(evidenceReturns.release).slice(1), ['Packet A', 'Packet B', 'Packet C']);
+  for (const key of ['matched', 'exception']) {
+    const events = releasePackets[key].events;
+    const times = events.map(record => record.time);
+    assert.deepEqual(times, [...times].sort());
+    const merge = events.find(record => record.event.includes('merged'));
+    const approvals = events.filter(record => record.event.includes('approved'));
+    assert.equal(approvals.length, 2);
+    assert.equal(approvals.filter(record => record.time < merge.time).length, key === 'matched' ? 2 : 1);
+    assert.match(events.at(-1).event, /REL-204 deployed commit 7c4f9ac/);
+  }
+  assert.equal(releasePackets.missing.events.length, 1);
+  assert.match(releasePackets.missing.events[0].event, /fields are empty/);
+  assert.match(evidenceDecision('release','release','missing').claim, /incomplete/);
+});

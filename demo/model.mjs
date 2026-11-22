@@ -154,3 +154,89 @@ export function pilotHours({repositories, manualMinutes, collectorMinutes, setup
   const collector = setupHours + collections * collectorMinutes / 60;
   return {manual, collector, saved: manual - collector, threshold: setupHours * 60 / collections};
 }
+
+// Decisions apply only to the fictional customer request. They never alter report controls.
+export const evidenceActions = {
+  snapshot: 'Send the settings snapshot',
+  release: 'Request the release record',
+  quarter: 'Sample the quarter'
+};
+
+// Alternative synthetic returns for the same release, shown independently.
+export const releasePackets = {
+  matched: {label: 'Packet A', events: [
+    {time: '09:12', event: 'Reviewer Lee approved PR #62'},
+    {time: '09:24', event: 'Reviewer Chen approved PR #62'},
+    {time: '09:30', event: 'PR #62 merged as commit 7c4f9ac'},
+    {time: '09:46', event: 'Release REL-204 deployed commit 7c4f9ac'}
+  ]},
+  missing: {label: 'Packet B', events: [
+    {time: '09:46', event: 'Release ticket REL-204 marked deployed. Commit and pull request fields are empty.'}
+  ]},
+  exception: {label: 'Packet C', events: [
+    {time: '09:12', event: 'Reviewer Lee approved PR #62'},
+    {time: '09:30', event: 'PR #62 merged as commit 7c4f9ac'},
+    {time: '09:37', event: 'Reviewer Chen approved PR #62'},
+    {time: '09:46', event: 'Release REL-204 deployed commit 7c4f9ac'}
+  ]}
+};
+
+export const evidenceReturns = {
+  release: {
+    pending: 'Waiting for the release owner',
+    ...Object.fromEntries(Object.entries(releasePackets).map(([key, packet]) => [key, packet.label]))
+  },
+  quarter: {
+    pending: 'Waiting for the change owner',
+    matched: 'Reconciled population and two approvals on each sampled change',
+    missing: 'Incomplete deployment list',
+    exception: 'One sampled change lacks approval evidence'
+  }
+};
+
+const initialDisposition = {
+  settings: {
+    snapshot: ['Answer the configuration question', 'Compliance lead', 'Attach the dated settings record with both repository names.'],
+    release: ['Release review exceeds the request', 'Compliance lead', 'Answer the settings question with the dated observation. Ask whether the customer also needs release-specific evidence.'],
+    quarter: ['Period sampling exceeds the request', 'Compliance lead', 'Send the settings observation and ask whether the customer also needs evidence of operation over time.']
+  },
+  release: {
+    snapshot: ['Release request stays open', 'Release owner', 'Obtain the deployed commit, the merged pull request and approvals dated before merge.'],
+    release: ['Collect the release evidence', 'Release owner', 'Trace the deployed commit to the pull request and compare each approval timestamp with its merge time.'],
+    quarter: ['The named release still needs a trace', 'Release owner', 'Identify the named release and its pull request. A period sample can omit this particular change.']
+  },
+  quarter: {
+    snapshot: ['Period request stays open', 'Change owner', 'Identify the changes deployed during the quarter and the evidence held for each.'],
+    release: ['One release cannot cover the quarter', 'Change owner', 'Reconcile the quarter’s release population, agree the sample and obtain records for selected changes.'],
+    quarter: ['Plan the period review', 'Change owner', 'Agree the period and sampling method with the reviewer. Reconcile the release list and retrieve the selected approval records.']
+  }
+};
+
+export function evidenceDecision(scope, action, returned = 'pending') {
+  if (!Object.hasOwn(initialDisposition, scope) || !Object.hasOwn(evidenceActions, action)) return null;
+  if (action !== 'snapshot' && !Object.hasOwn(evidenceReturns[action], returned)) return null;
+  const [title, owner, next] = initialDisposition[scope][action];
+  const observation = 'At collection, both fixture repositories required two reviews.';
+  const baseline = {title, owner, next, claim: observation, simulated: false};
+  if (action === 'snapshot' || returned === 'pending') return baseline;
+
+  if (returned === 'missing') {
+    return {...baseline, simulated: true, title: 'Evidence gap remains open',
+      owner: action === 'release' ? 'Release owner' : 'Change owner',
+      next: action === 'release' ? 'Locate the release identifier and its source records, or document why the link is unavailable.' : 'Reconcile the deployment list against the delivery system before selecting a sample.',
+      claim: observation + ' The requested follow-up records are incomplete.'};
+  }
+
+  if (returned === 'exception') {
+    return {...baseline, simulated: true, title: 'Escalate the observed exception', owner: 'Change owner',
+      next: 'Preserve the reviewed record, check for a documented exception and agree follow-up with the compliance lead.',
+      claim: action === 'release' ? 'One of the two recorded approvals occurred after this release was merged.' : 'One sampled change lacks evidence of timely approval. The result for the remaining population is undetermined.'};
+  }
+
+  const claim = action === 'release' ? 'The linked release has two approvals recorded before merge.' :
+    'Each change in the agreed sample has two documented approvals. This conclusion applies to the tested sample.';
+  if (scope !== action) return {...baseline, simulated: true, claim: observation + ' ' + claim};
+  return {title: action === 'release' ? 'Answer for this release' : 'Report the sample results', owner: 'Compliance lead',
+    next: action === 'release' ? 'Provide the dated trace for the named release.' : 'Disclose the dates, population reconciliation, selection method and tested results. The independent auditor determines any examination conclusion.',
+    claim, simulated: true};
+}

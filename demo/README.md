@@ -3,7 +3,7 @@
 The browser interface for local GitHub assessments and a separate synthetic
 policy demonstration. The public sample opens with a customer asking who approved a
 release. Compare the evidence needed for a configuration snapshot, one release,
-and a quarter of production changes. The worksheet compares manual collection
+and a quarter of production changes. Choose the control owner’s response, compare all three handoffs and try a hypothetical returned record or exception. Each branch identifies what the customer may be told and who acts next. These choices leave the recorded policy result intact. The worksheet compares manual collection
 hours with setup and recurring review hours for a three-month pilot.
 The [technical guide](https://safetymp.github.io/SOC-2/#technical) links the evidence records, explains coverage and opens the private assessment setup or report importer.
 [Open the overview](https://safetymp.github.io/SOC-2/#overview) to inspect findings,

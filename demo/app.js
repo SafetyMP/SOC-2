@@ -1,4 +1,4 @@
-import {pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
+import {releasePackets,evidenceActions,evidenceReturns,evidenceDecision,pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
 
 const paths={grid:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',flag:'M5 21V3m0 1h13l-3 5 3 5H5',shield:'M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6z M8 12l3 3 5-6',file:'M14 3H5v18h14V8z M14 3v5h5 M8 12h8 M8 16h6',layers:'M12 3l9 5-9 5-9-5z M3 12l9 5 9-5 M3 16l9 5 9-5',arrow:'M5 12h14 M13 6l6 6-6 6',down:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5',search:'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',book:'M12 5v16 M12 5C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-3-1-6-2-10 1',check:'M5 12l4 4L19 6',close:'M6 6l12 12 M6 18L18 6',clock:'M12 8v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',key:'M14 4a5 5 0 1 1-3 9L4 20H1v-3l8-8a5 5 0 0 1 5-5z',info:'M12 11v6 M12 7h.01 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',refresh:'M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 2 M4 17l2 2a8 8 0 0 0 13-2',code:'M8 5l-6 7 6 7 M16 5l6 7-6 7',external:'M14 3h7v7 M21 3L10 14 M10 3H3v18h18v-7'};
 const icon=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.shield}"/></svg>`;
@@ -43,33 +43,60 @@ function nav() {document.querySelector('#navigation').innerHTML=visibleNavItems(
 function row(c) {const note=notes[c.id];const saved=note && (note.owner||note.note||reviewProgress(note)!=='Not started');return `<tr><td><div class="control-title-row"><span class="control-icon">${icon(c.kind==='technical'?'shield':'file')}</span><div><button class="control-title" data-control="${c.id}">${h(controlTitle(c))}</button><span class="control-id">${c.id}</span>${saved?`<div class="plan-summary"><span class="plan-badge">${icon('check')} Plan saved · ${h(reviewProgress(note))}</span>${note.owner?`<span>${h(note.owner)}</span>`:''}${note.note?`<span class="plan-excerpt">${h(note.note.length>110?note.note.slice(0,107)+'…':note.note)}</span>`:''}</div>`:''}</div></div></td><td class="domain-col">${h(domainLabel(c.domain))}</td><td>${status(c)}</td><td class="criticality-col"><span class="criticality ${c.criticality<3?'medium':''}"><i aria-hidden="true"><b></b><b></b><b></b></i>${c.criticality===3?'High':c.criticality===2?'Medium':'Low'}</span></td><td><button class="row-open" data-control="${c.id}" aria-label="Inspect ${c.id}">${icon('arrow')}</button></td></tr>`;}
 function table(controls) {return `<div class="table-wrap"><table class="control-table"><thead><tr><th scope="col">Control</th><th scope="col" class="domain-col">Domain</th><th scope="col">Result</th><th scope="col" class="criticality-col">Priority</th><th scope="col"><span class="muted" aria-label="Actions"></span></th></tr></thead><tbody>${controls.map(row).join('')}</tbody></table></div>`;}
 const requests = {
-  settings: {
-    label: 'Settings at collection', title: 'Attach the settings record.', evidence: ['Settings snapshot'],
-    finding: 'Both fixture repositories require two reviews and status checks. The platform owner can share that observation with the collection date and the repository names.',
-    next: 'Keep the underlying record with the policy result so another reviewer can repeat the check.'
-  },
-  release: {
-    label: 'One production release', title: 'Request the pull request.', evidence: ['Settings snapshot','Release approvals'],
-    finding: 'A rule describes what GitHub was configured to enforce. The fixture contains no release identifier, approving reviews or merge history.',
-    next: 'Ask the release owner to link the deployed commit, its merged pull request, dated approvals and check results. Reconcile any bypass before responding.'
-  },
-  quarter: {
-    label: 'Changes throughout the quarter', title: 'Keep the period request open.', evidence: ['Settings snapshot','Release approvals','Quarter’s release population'],
-    finding: 'A settings snapshot cannot establish which changes shipped during the quarter or how each was approved.',
-    next: 'Ask the change owner for the release population, the period boundaries, linked approval records and documented exceptions. Agree the testing scope with the reviewer.'
-  }
+  settings: {label: 'Settings at collection', evidence: ['Settings snapshot']},
+  release: {label: 'One production release', evidence: ['Settings snapshot','Release approvals']},
+  quarter: {label: 'Changes throughout the quarter', evidence: ['Settings snapshot','Release approvals','Quarter’s release population']}
 };
 
 let selectedRequest = 'release';
+let selectedAction = '';
+let returnedEvidence = 'pending';
 const pilotAssumptions = {repositories: 8, manualMinutes: 25, collectorMinutes: 10, setupHours: 4};
 const canShowCase = () => !real() && !imported && new URLSearchParams(location.search).get('local') !== '1';
 function caseResponse() {
   const request = requests[selectedRequest];
-  const records = request.evidence.map((name, index) => `<li class="${index ? 'needed' : 'held'}"><span>${name}</span><small>${index ? 'Request record' : 'In fixture'}</small></li>`).join('');
+  const records = request.evidence.map((name, index) => `<li class="${index ? 'needed' : 'held'}"><span>${name}</span><small>${index ? 'Outside fixture' : 'In fixture'}</small></li>`).join('');
   return `<figure class="scope-figure scope-${selectedRequest}"><figcaption>Illustrative timeline · ${request.label}</figcaption>
     <div class="scope-track" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="scope-axis"><span>Quarter opens</span><span>${selectedRequest === 'settings' ? 'Settings observed' : 'Release under review'}</span><span>Quarter closes</span></div>
-    </figure><figure class="record-map"><figcaption>Records for this request</figcaption><ol>${records}</ol></figure><h3>${request.title}</h3><p>${request.finding}</p><p><strong>Next step.</strong> ${request.next}</p>`;
+    </figure><figure class="record-map"><figcaption>Records for this request</figcaption><ol>${records}</ol></figure>`;
+}
+
+function actionOutcome() {
+  const outcome = evidenceDecision(selectedRequest, selectedAction, returnedEvidence);
+  if (!outcome) return '<p>Choose a response to see what the compliance lead can report and who acts next.</p>';
+  const interpretation = `<p class="eyebrow">${outcome.simulated ? 'Hypothetical return' : 'With the current fixture'}</p>
+    <h3>${outcome.title}</h3><dl><dt>Customer response</dt><dd>${outcome.claim}</dd>
+    <dt>Next owner · ${outcome.owner}</dt><dd>${outcome.next}</dd></dl>`;
+  const packet = selectedAction === 'release' && releasePackets[returnedEvidence];
+  if (!packet) return interpretation;
+  return `<figure class="release-packet"><figcaption>${packet.label} · REL-204</figcaption>
+    <p>Illustrative records from one day, in UTC. Which approvals can you link to the merged commit?</p>
+    <ol>${packet.events.map(record => `<li><time>${record.time}</time><span>${record.event}</span></li>`).join('')}</ol>
+    </figure><details class="packet-reading"><summary>Compare your reading with the case interpretation</summary>${interpretation}</details>`;
+}
+
+function returnOptions() {
+  const choices = evidenceReturns[selectedAction];
+  if (!choices) return '';
+  return `<label class="case-select">Simulate a response from the owner<select id="evidence-return">
+    ${Object.entries(choices).map(([value, label]) => `<option value="${value}" ${returnedEvidence === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+    <p class="case-return-note">These possible replies explore what happens next. The bundled fixture contains only the settings snapshot.</p>`;
+}
+
+function compareActions() {
+  return Object.entries(evidenceActions).map(([key, label]) => {
+    const initial = evidenceDecision(selectedRequest, key);
+    return `<div><dt>${label}</dt><dd>${initial.title}. Next owner: ${initial.owner}.</dd></div>`;
+  }).join('');
+}
+
+function decisionForm() {
+  return `<fieldset class="case-actions"><legend>How will the platform control owner respond?</legend>
+    ${Object.entries(evidenceActions).map(([key, label]) => `<label><input type="radio" name="evidence-action" value="${key}" ${selectedAction === key ? 'checked' : ''}>${label}</label>`).join('')}
+    </fieldset><div id="return-options">${returnOptions()}</div>
+    <div class="case-disposition" id="action-outcome" aria-live="polite">${actionOutcome()}</div>
+    <details class="case-comparison"><summary>Compare the three initial responses</summary><dl id="compare-actions">${compareActions()}</dl></details>`;
 }
 
 function barRow(label, value, max, display) {
@@ -106,6 +133,7 @@ function caseView() {
       <p>Keep the same record and change the scope of the question.</p>
       <label class="case-select">Evidence requested<select id="case-request">${Object.entries(requests).map(([key, entry]) => `<option value="${key}" ${selectedRequest === key ? 'selected' : ''}>${entry.label}</option>`).join('')}</select></label>
       <div id="case-response" class="case-response" aria-live="polite">${caseResponse()}</div>
+      ${decisionForm()}
     </section>
     <section class="case-section"><p class="eyebrow">Business case</p><h2>Would you fund three months of local collection?</h2>
       <p>As compliance lead, you sponsor the pilot and decide whether to expand it. The platform control owner times two ways of gathering the same three GitHub settings checks each month. Include collection, review and follow-up in both estimates. Release approvals still need their own records.</p>
@@ -233,9 +261,20 @@ document.addEventListener('click',async event=>{
   if(action==='confirm-reset'){if(real())realReviews.delete(storageKey);if(!real()){try{localStorage.removeItem(storageKey);}catch{}}imported=false;help.close();await setReport(sample);navigate('overview');notify('Current report’s notes cleared. Sample restored.');}
 });
 document.addEventListener('change',event=>{
-  if(event.target.id !== 'case-request')return;
-  selectedRequest = event.target.value;
-  document.querySelector('#case-response').innerHTML = caseResponse();
+  const field = event.target;
+  if (field.id === 'case-request') {
+    selectedRequest = field.value;
+    returnedEvidence = 'pending';
+    document.querySelector('#case-response').innerHTML = caseResponse();
+    document.querySelector('#compare-actions').innerHTML = compareActions();
+  } else if (field.name === 'evidence-action') {
+    selectedAction = field.value;
+    returnedEvidence = 'pending';
+  } else if (field.id === 'evidence-return') {
+    returnedEvidence = field.value;
+  } else return;
+  if (field.id !== 'evidence-return') document.querySelector('#return-options').innerHTML = returnOptions();
+  document.querySelector('#action-outcome').innerHTML = actionOutcome();
 });
 document.addEventListener('input',event=>{
   const field = event.target;
