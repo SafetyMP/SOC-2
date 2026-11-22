@@ -38,23 +38,23 @@ async function setReport(data,restoredNotes=null,isImported=false) {
   render();
 }
 function header(title,description,eyebrow='READINESS AT A GLANCE',extra='') {return `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div><div class="heading-actions">${extra}<button class="button secondary" data-action="export">${icon('down')} Export review</button></div></div>`;}
-function visibleNavItems() {return canShowCase() ? [['case','book','Release case'], ...navItems] : navItems;}
+function visibleNavItems() {return canShowCase() ? [['case','book','Release case'], ['technical','code','Technical guide'], ...navItems] : navItems;}
 function nav() {document.querySelector('#navigation').innerHTML=visibleNavItems().map(([id,i,label])=>`<a href="#${id}" class="${page===id?'active':''}" ${page===id?'aria-current="page"':''}>${icon(i)}<span>${label}</span>${id==='attention'?`<span class="count">${report.controls.filter(c=>ATTENTION.includes(c.status)).length}</span>`:''}</a>`).join('');document.querySelector('#breadcrumb').textContent=visibleNavItems().find(n=>n[0]===page)[2];}
 function row(c) {const note=notes[c.id];const saved=note && (note.owner||note.note||reviewProgress(note)!=='Not started');return `<tr><td><div class="control-title-row"><span class="control-icon">${icon(c.kind==='technical'?'shield':'file')}</span><div><button class="control-title" data-control="${c.id}">${h(controlTitle(c))}</button><span class="control-id">${c.id}</span>${saved?`<div class="plan-summary"><span class="plan-badge">${icon('check')} Plan saved · ${h(reviewProgress(note))}</span>${note.owner?`<span>${h(note.owner)}</span>`:''}${note.note?`<span class="plan-excerpt">${h(note.note.length>110?note.note.slice(0,107)+'…':note.note)}</span>`:''}</div>`:''}</div></div></td><td class="domain-col">${h(domainLabel(c.domain))}</td><td>${status(c)}</td><td class="criticality-col"><span class="criticality ${c.criticality<3?'medium':''}"><i aria-hidden="true"><b></b><b></b><b></b></i>${c.criticality===3?'High':c.criticality===2?'Medium':'Low'}</span></td><td><button class="row-open" data-control="${c.id}" aria-label="Inspect ${c.id}">${icon('arrow')}</button></td></tr>`;}
 function table(controls) {return `<div class="table-wrap"><table class="control-table"><thead><tr><th scope="col">Control</th><th scope="col" class="domain-col">Domain</th><th scope="col">Result</th><th scope="col" class="criticality-col">Priority</th><th scope="col"><span class="muted" aria-label="Actions"></span></th></tr></thead><tbody>${controls.map(row).join('')}</tbody></table></div>`;}
 const requests = {
   settings: {
-    label: 'Settings at collection', title: 'Attach the settings record.',
+    label: 'Settings at collection', title: 'Attach the settings record.', evidence: ['Settings snapshot'],
     finding: 'Both fixture repositories require two reviews and status checks. The platform owner can share that observation with the collection date and the repository names.',
     next: 'Keep the underlying record with the policy result so another reviewer can repeat the check.'
   },
   release: {
-    label: 'One production release', title: 'Request the pull request.',
+    label: 'One production release', title: 'Request the pull request.', evidence: ['Settings snapshot','Release approvals'],
     finding: 'A rule describes what GitHub was configured to enforce. The fixture contains no release identifier, approving reviews or merge history.',
     next: 'Ask the release owner to link the deployed commit, its merged pull request, dated approvals and check results. Reconcile any bypass before responding.'
   },
   quarter: {
-    label: 'Changes throughout the quarter', title: 'Keep the period request open.',
+    label: 'Changes throughout the quarter', title: 'Keep the period request open.', evidence: ['Settings snapshot','Release approvals','Quarter’s release population'],
     finding: 'A settings snapshot cannot establish which changes shipped during the quarter or how each was approved.',
     next: 'Ask the change owner for the release population, the period boundaries, linked approval records and documented exceptions. Agree the testing scope with the reviewer.'
   }
@@ -65,7 +65,15 @@ const pilotAssumptions = {repositories: 8, manualMinutes: 25, collectorMinutes: 
 const canShowCase = () => !real() && !imported && new URLSearchParams(location.search).get('local') !== '1';
 function caseResponse() {
   const request = requests[selectedRequest];
-  return `<h3>${request.title}</h3><p>${request.finding}</p><p><strong>Next step.</strong> ${request.next}</p>`;
+  const records = request.evidence.map((name, index) => `<li class="${index ? 'needed' : 'held'}"><span>${name}</span><small>${index ? 'Request record' : 'In fixture'}</small></li>`).join('');
+  return `<figure class="scope-figure scope-${selectedRequest}"><figcaption>Illustrative timeline · ${request.label}</figcaption>
+    <div class="scope-track" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="scope-axis"><span>Quarter opens</span><span>${selectedRequest === 'settings' ? 'Settings observed' : 'Release under review'}</span><span>Quarter closes</span></div>
+    </figure><figure class="record-map"><figcaption>Records for this request</figcaption><ol>${records}</ol></figure><h3>${request.title}</h3><p>${request.finding}</p><p><strong>Next step.</strong> ${request.next}</p>`;
+}
+
+function barRow(label, value, max, display) {
+  return `<div class="case-bar"><span>${label}</span><progress aria-label="${label}" value="${value}" max="${max}"></progress><b>${display}</b></div>`;
 }
 
 function pilotResult() {
@@ -74,28 +82,30 @@ function pilotResult() {
   const format = value => value.toLocaleString('en-US', {maximumFractionDigits: 2});
   const balance = result.saved === 0 ? 'Both options use the same time.' :
     `The collector takes ${format(Math.abs(result.saved))} ${Math.abs(result.saved) === 1 ? 'hour' : 'hours'} ${result.saved > 0 ? 'less' : 'more'}.`;
-  return `<strong>${balance}</strong> Manual collection uses ${format(result.manual)} hours over three months. The local pilot uses ${format(result.collector)}, including setup. Recovering setup requires saving ${format(result.threshold)} minutes per repository per month.`;
+  const scale = Math.max(1, result.manual, result.collector);
+  return `<figure class="case-chart"><figcaption>Team hours over three months</figcaption>
+    ${barRow('Manual collection', result.manual, scale, format(result.manual) + ' h')}
+    ${barRow('Local pilot including setup', result.collector, scale, format(result.collector) + ' h')}
+    </figure><strong>${balance}</strong> Recovering setup requires saving ${format(result.threshold)} minutes per repository per month.`;
 }
 
 function caseView() {
   const control = report.controls.find(item => item.id === 'CTRL-CHG-002');
   const input = (key, label, min, max) => `<label>${label}<input data-pilot="${key}" type="number" min="${min}" max="${max}" step="1" required value="${Number.isFinite(pilotAssumptions[key]) ? pilotAssumptions[key] : ''}"></label>`;
-  const source = sourceURL(report.source_commit,control.source.payload);
   return `<article class="change-case">
     <header class="case-head"><div class="case-intro"><p class="eyebrow">Change management · Synthetic case</p>
       <h1>Who approved the release?</h1>
       <p>A customer’s vendor-risk reviewer asks who approved a production release. You lead compliance at the service provider. Your platform owner sends a passing branch-settings check. What can you tell the customer?</p></div>
       <div class="case-record"><p class="eyebrow">Recorded fixture</p><h2>Required reviews</h2>
-        <div class="case-record-line"><code>core-service</code><b>2</b></div>
-        <div class="case-record-line"><code>infra-modules</code><b>2</b></div>
+        <div class="case-record-line"><code>core-service</code><span class="review-marks" aria-hidden="true">● ●</span><b>2</b></div>
+        <div class="case-record-line"><code>infra-modules</code><span class="review-marks" aria-hidden="true">● ●</span><b>2</b></div>
         <p>${status(control)} <span>CTRL-CHG-002</span></p>
-        <button class="button secondary" data-control="CTRL-CHG-002">Inspect policy result</button>
+        <p class="record-note">The fixture records a rule requiring two approvals in each repository. It contains no individual sign-offs.</p>
       </div></header>
     <section class="case-section"><h2>What did the customer request?</h2>
       <p>Keep the same record and change the scope of the question.</p>
       <label class="case-select">Evidence requested<select id="case-request">${Object.entries(requests).map(([key, entry]) => `<option value="${key}" ${selectedRequest === key ? 'selected' : ''}>${entry.label}</option>`).join('')}</select></label>
       <div id="case-response" class="case-response" aria-live="polite">${caseResponse()}</div>
-      <p class="case-links">${source ? `<a href="${h(source)}">Read the two fixture records</a> · ` : ''}<a href="#overview">Explore the assessment workspace</a></p>
     </section>
     <section class="case-section"><p class="eyebrow">Business case</p><h2>Would you fund three months of local collection?</h2>
       <p>As compliance lead, you sponsor the pilot and decide whether to expand it. The platform control owner times two ways of gathering the same three GitHub settings checks each month. Include collection, review and follow-up in both estimates. Release approvals still need their own records.</p>
@@ -103,11 +113,29 @@ function caseView() {
       <div class="case-response" id="pilot-result" aria-live="polite">${pilotResult()}</div>
       <p>These starting values are illustrative. Use the same repositories for both methods. At the end of month three, ask a second reviewer to retrieve the dated source for each observation and identify every unreadable setting. Expand only if the team recovers its setup time, every observation remains traceable and all evidence gaps are visible. Otherwise keep manual collection for the affected repositories.</p>
     </section>
-    <section class="case-section case-sources"><h2>How to interpret the evidence</h2>
-      <p>GitHub documents how review counts, status checks and bypass permissions affect protected branches. <a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches">GitHub branch protection</a></p>
-      <p>NIST’s assessment guidance distinguishes examining records, interviewing people and testing controls. The evidence needed depends on the assessment objective. <a href="https://csrc.nist.gov/pubs/sp/800/53/a/r5/final">NIST SP 800-53A Rev. 5</a></p>
-      <p>Service-organization management makes the assertion. An independent service auditor tests controls and reports the results. Customers use the report to assess supplier risk. The compliance team in this case prepares the underlying records. <a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA’s illustrative Type 2 report</a> · <a href="https://cloud.google.com/security/compliance/soc-2">How Google Cloud customers use the report</a></p>
-    </section></article>`;
+    <p class="case-links"><a href="#technical">Inspect the method, sources and report</a></p></article>`;
+}
+
+function caseGuide() {
+  const control = report.controls.find(item => item.id === 'CTRL-CHG-002');
+  const source = sourceURL(report.source_commit, control.source.payload);
+  const total = report.summary.catalog_count;
+  const count = report.summary.wired_count;
+  return `<article class="change-case technical-case">
+    <p class="eyebrow">Technical guide</p><h1>Trace the evidence.</h1>
+    <p>Two repository fixtures feed a Rego rule. The passing result describes their review settings at collection. Inspect the inputs and verdict together.</p>
+    <div class="case-tools">${source ? `<a href="${h(source)}">Fixture records</a>` : ''}<button class="button secondary" data-control="CTRL-CHG-002">Inspect policy result</button><a href="./data/sample-report.json">Generated report</a></div>
+    <figure class="case-chart"><figcaption>Catalog controls evaluated by each workflow</figcaption>
+      ${barRow('Bundled synthetic report', count, total, `${count} of ${total}`)}
+      ${barRow('Private GitHub collector', 3, total, `3 of ${total}`)}
+    </figure>
+    <p>The local collector checks branch protection, review and status-check settings, and workflow presence. Unreadable settings need follow-up. A broader customer request may require deployment records and a reviewer’s assessment.</p>
+    <div class="case-tools"><a href="#overview">Explore the assessment workspace</a><a href="#evidence">Evidence library</a><button class="button secondary" data-action="assess">Set up private collection</button><button class="button secondary" data-action="import">Open report</button></div>
+    <details class="case-sources"><summary>Research and stakeholder sources</summary>
+      <p>Branch protection governs review requirements, status checks and bypass settings. <a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches">GitHub branch protection</a></p>
+      <p>Assessment objectives determine which records, interviews and tests are appropriate. <a href="https://csrc.nist.gov/pubs/sp/800/53/a/r5/final">NIST SP 800-53A Rev. 5</a></p>
+      <p>Management makes the system assertion, the independent service auditor tests controls, and customers use the report to assess supplier risk. <a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA’s illustrative report</a> · <a href="https://cloud.google.com/security/compliance/soc-2">Google Cloud customer guidance</a></p>
+    </details></article>`;
 }
 
 function overview() {
@@ -134,7 +162,22 @@ function guideView() {return header('From a check to a confident next step.','A 
 function repositoryBanner(){return real()?`<section class="assessment-banner" aria-label="Real repository assessment"><div><strong>Real repository · ${h(report.target.repository)}</strong><span>${h(report.target.branch||'Branch unavailable')} · ${report.target.commit?h(report.target.commit.slice(0,12)):'Commit unavailable'} · ${h(report.target.visibility||'Visibility unavailable')}</span></div><p>3 GitHub checks in scope · ${report.summary.unwired_count} catalog controls outside scope. Evidence and notes stay local; notes are lost on reload unless exported.</p>${report.assessment.incomplete?'<p class="collection-warning">Collection incomplete. Unreadable settings are missing evidence, not passing checks.</p>':''}</section>`:'';}
 function workflowPanel(){return `<section class="panel real-workflow"><div class="eyebrow">YOUR REPOSITORY · ON YOUR COMPUTER</div><h2>Assess a real GitHub repository</h2><p>Run from a local checkout of this project. Requires Python, PyYAML, OPA, and the GitHub CLI. Use your existing <code>gh</code> login, or sign in locally with <code>gh auth login --hostname github.com</code>.</p><ol><li><strong>Collect and assess one repository.</strong><pre>python3 scripts/assess_github.py --repo OWNER/REPO</pre><p>The command prints the private report path and the command to open it. GitHub requests are read-only. Credentials remain with your local GitHub CLI.</p></li><li><strong>Open the local workspace.</strong><pre>python3 scripts/serve_workspace.py --report /absolute/path/report.json</pre><p>Open the localhost URL printed in your terminal. Reports and sanitized evidence stay outside the checkout; the public demo does not accept real reports.</p></li><li><strong>Review, fix, and rerun.</strong><p>Inspect branch protection, required reviews and status checks, and active workflow presence. These three checks do not establish deployment reproducibility or complete SOC 2 readiness. Unreadable settings appear as missing evidence. Export a review to keep your notes.</p></li></ol><a class="text-button" href="${repo}/blob/main/docs/local-github-assessment.md" target="_blank" rel="noreferrer">Setup, permissions & privacy ${icon('external')}</a></section>`;}
 function showWorkflow(){help.innerHTML=`<div class="help-body"><div class="help-header"><span class="eyebrow">LOCAL ASSESSMENT</span><button class="close-button" data-action="close-help" aria-label="Close local assessment instructions">${icon('close')}</button></div><h2 id="help-title">Bring your own repository.</h2>${workflowPanel()}</div>`;help.showModal();}
-function render() {if(page==='case'&&!canShowCase())page='overview';filters=filtersForPage(filters,page);nav();main.innerHTML=repositoryBanner()+(page==='case'?caseView():page==='overview'?overview():['attention','controls'].includes(page)?listView():page==='evidence'?evidenceView():guideView());if(['attention','controls'].includes(page))renderResults();}
+function render() {
+  if (['case','technical'].includes(page) && !canShowCase()) page = 'overview';
+  const readingCase = page === 'case' || page === 'technical';
+  document.body.classList.toggle('case-layout', readingCase);
+  document.querySelector('#case-switch').href = page === 'technical' ? '#case' : '#technical';
+  document.querySelector('#case-switch').textContent = page === 'technical' ? 'Back to the case' : 'Technical guide';
+  filters = filtersForPage(filters, page);
+  if (readingCase) {
+    main.innerHTML = page === 'case' ? caseView() : caseGuide();
+    return;
+  }
+  nav();
+  const view = page === 'overview' ? overview() : ['attention','controls'].includes(page) ? listView() : page === 'evidence' ? evidenceView() : guideView();
+  main.innerHTML = repositoryBanner() + view;
+  if (['attention','controls'].includes(page)) renderResults();
+}
 function navigate(target) {if(location.hash===`#${target}`){page=target;render();}else location.hash=target;}
 function openDetail(id) {
   const c=report.controls.find(c=>c.id===id);if(!c)return;

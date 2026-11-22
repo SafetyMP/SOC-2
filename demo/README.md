@@ -5,6 +5,7 @@ policy demonstration. The public sample opens with a customer asking who approve
 release. Compare the evidence needed for a configuration snapshot, one release,
 and a quarter of production changes. The worksheet compares manual collection
 hours with setup and recurring review hours for a three-month pilot.
+The [technical guide](https://safetymp.github.io/SOC-2/#technical) links the evidence records, explains coverage and opens the private assessment setup or report importer.
 [Open the overview](https://safetymp.github.io/SOC-2/#overview) to inspect findings,
 their sources and the local review plan.
 

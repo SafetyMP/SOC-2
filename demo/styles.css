@@ -182,3 +182,53 @@ nav .count {background: #50454b; color: #fff;}
 .case-links a, .case-sources a {font-weight: 600; color: #741b37; text-underline-offset: .14em;}
 @media (max-width: 1000px) {.case-head {grid-template-columns: 1fr;} .case-inputs {grid-template-columns: repeat(2,minmax(0,1fr));}}
 @media (max-width: 540px) {.case-inputs {grid-template-columns: 1fr;} .case-head {gap: 1.25rem;} .case-section {padding-block: 1.5rem;}}
+
+.case-mast {display: none;}
+.case-layout .case-mast {display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #d1c9cb; background: #fff; padding: .85rem max(1rem, calc((100% - 72rem) / 2));}
+.case-mast a {color: #741b37; font-size: .95rem; font-weight: 650; text-underline-offset: .2em;}
+.case-mast a:first-child {text-decoration: none; font-family: Georgia, serif; font-size: 1.5rem;}
+.case-mast span {margin-inline-start: .5rem; color: #483e43; font: 500 1rem system-ui, sans-serif;}
+.case-layout .sidebar, .case-layout .topbar {display: none;}
+.case-layout .shell {margin: 0;}
+.case-layout main, .case-layout .page-footer {max-width: 76rem; margin: auto; padding-inline: clamp(1rem, 3.5vw, 2rem);}
+.case-layout main {padding-block: clamp(1rem, 3vw, 2.5rem);}
+.record-note {font-size: .95rem; margin-bottom: 0;}
+.record-map, .case-chart {margin: 0 0 1.25rem; color: #392c31;}
+.record-map figcaption, .case-chart figcaption {font-weight: 650; margin: 0 0 .7rem;}
+.record-map ol {display: flex; flex-wrap: wrap; padding: 0; gap: .7rem; margin: 0; list-style: none;}
+.record-map li {display: grid; flex: 1 1 9rem; gap: .25rem; padding: .8rem .9rem; border: 1px solid #84596a; background: #fff; font-weight: 650;}
+.record-map li.needed {border-style: dashed;}
+.record-map li.held {background: #641c34; color: #fff;}
+.record-map small {font-size: .85rem; font-weight: 450;}
+.case-bar {display: grid; grid-template-columns: minmax(12rem, 1fr) 2fr 5.5rem; align-items: center; gap: .85rem; margin: .5rem 0;}
+.case-bar b {text-align: right; font-variant-numeric: tabular-nums;}
+.case-bar progress {appearance: none; border: 0; height: .85rem; width: 100%; background: #e1d8dc; accent-color: #741b37;}
+.case-bar progress::-webkit-progress-bar {background: #e1d8dc;}
+.case-bar progress::-webkit-progress-value {background: #741b37;}
+.case-bar progress::-moz-progress-bar {background: #741b37;}
+.technical-case {max-width: 58rem; background: #fff; border-top: .4rem solid #741b37; padding: clamp(1rem, 3.5vw, 3rem);}
+.technical-case h1 {font: 600 clamp(2.2rem, 4vw, 3.5rem)/1.1 Georgia, serif;}
+.technical-case .eyebrow {color: #741b37;}
+.technical-case .case-chart {margin-top: 1.5rem; padding-block: 1rem; border-block: 1px solid #d1c9cb;}
+.case-tools {display: flex; align-items: center; flex-wrap: wrap; gap: .8rem 1.4rem;}
+.case-tools a, .technical-case summary {color: #741b37; font-weight: 600; text-underline-offset: .18em;}
+.technical-case .case-sources {margin-top: 1.5rem;}
+.technical-case summary {cursor: pointer;}
+@media (max-width: 640px) {
+  .case-mast span {display: block; margin-inline: 0; font-size: .85rem;}
+  .case-bar {grid-template-columns: minmax(0,1fr) auto; gap: .2rem .5rem; margin-bottom: .8rem;}
+  .case-bar progress {grid-row: 2; grid-column: 1 / -1;}
+}
+.case-layout .page-footer {display: none;}
+.case-record-line .review-marks {margin-left: auto; color: #f1c1d0; font-size: .8rem; align-self: center; letter-spacing: .04em;}
+.scope-figure {margin: 0 0 1.5rem;}
+.scope-figure figcaption {font-weight: 650;}
+.scope-track {display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; height: 1rem; background: linear-gradient(#9d8c93,#9d8c93) center / 100% 2px no-repeat;}
+.scope-track i {width: .8rem; height: .8rem; border: 2px solid #76656c; background: #f7eef1; border-radius: 50%;}
+.scope-track i:nth-child(2) {background: #741b37; border-color: #741b37;}
+.scope-release .scope-track i:nth-child(2) {border-radius: 0; transform: rotate(45deg);}
+.scope-quarter .scope-track {background: linear-gradient(#741b37,#741b37) center / 100% 5px no-repeat;}
+.scope-quarter .scope-track i {background: #741b37; border-color: #741b37;}
+.scope-axis {display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .4rem; font-size: .85rem; margin-top: .3rem;}
+.scope-axis span:nth-child(2) {text-align: center;}
+.scope-axis span:last-child {text-align: right;}
