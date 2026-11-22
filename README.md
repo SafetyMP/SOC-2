@@ -15,7 +15,7 @@ review. A synthetic demo lets you explore the workflow before connecting anythin
 
 ## Try the release evidence case
 
-A customer’s vendor-risk reviewer asks the service provider’s compliance lead who approved a production release. The sample shows two repositories configured to require two reviews. Change the customer’s request from a settings snapshot to a particular release or a whole quarter. Inspect the recorded policy result and decide which records the platform team still needs. As the pilot sponsor, compare collection and reviewer time with a three-month local collector pilot. Check whether a second reviewer can retrieve each source and identify missing evidence before expanding. [Open the case](https://safetymp.github.io/SOC-2/#case) · [Trace the selected evidence](https://safetymp.github.io/SOC-2/#technical)
+Eastbank Food Co-op is considering a rollout to two more depots. As Cedarline’s compliance lead, prepare the change evidence for Friday’s customer review. Inspect a release timeline or reconcile the quarter’s register, mark the workpaper and see whether a second reviewer can support the reply. An illustrative pilot compares two team sizes with manual settings collection. [Open the case](https://safetymp.github.io/SOC-2/#case) · [Trace the selected evidence](https://safetymp.github.io/SOC-2/#technical)
 
 ## Choose your workflow
 

@@ -271,3 +271,34 @@ nav .count {background: #50454b; color: #fff;}
 .trace-events {list-style:none;padding:0}
 .trace-events time {font-family:ui-monospace,monospace;margin-right:.5rem}
 .trace-guide summary {cursor:pointer}
+.review-letter { margin:0; background:#551f36; color:#fff3ef; padding:clamp(1.25rem,3vw,2.4rem); border-radius:.2rem; box-shadow:5px 5px 0 #d7c8ce; }
+.review-letter p { color:#f1ccd8; font-weight:650; margin:0; }
+.review-letter blockquote { font: 500 clamp(1.3rem,2.4vw,2rem)/1.3 Georgia,serif; margin:1.2rem 0; }
+.review-letter span { font-size:.95rem; }
+.case-journey ol, .method-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.1rem; list-style:none; padding:0; margin:1.25rem 0; }
+.case-journey li, .method-steps div { padding:.8rem .2rem .2rem; border-top:2px solid #96677c; }
+.case-journey b, .case-journey span { display:block; }
+.case-journey b, .method-steps dt { color:#63263d; font-weight:650; }
+.case-journey span { margin-top:.3rem; }
+.case-primary, .case-picks button { min-height:2.7rem; padding:.55rem .85rem; font:600 .95rem/1.3 system-ui,sans-serif; border:1px solid #925970; border-radius:.25rem; background:white; color:#59283a; cursor:pointer; }
+.case-primary, .case-picks button[aria-pressed="true"] { background:#66243e; color:white; }
+.case-picks { display:flex; flex-wrap:wrap; gap:.5rem; }
+.inbox-grid, .pilot-desk { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:clamp(1rem,3vw,2rem); align-items:start; }
+.inbox-grid .case-actions { margin:0; }
+.settings-card, .method-slip { background:#faf4f4; padding:1rem 1.25rem; border:1px solid #ddcdd3; }
+.settings-card { margin:0; }
+.settings-card figcaption,.settings-card dd { font-weight:650; }
+.settings-card dl div { display:flex; justify-content:space-between; gap:1rem; border-bottom:1px dashed #b7a0aa; padding:.5rem 0; }
+.settings-card dd,.method-steps dd { margin:0; }
+.method-slip,.paper-signoff { margin-block:1.4rem; }
+.scope-figure blockquote { margin:.8rem 0 0; font:1.25rem/1.4 Georgia,serif; }
+.method-slip h3,.paper-signoff h3,.pilot-desk h3 { font:600 1.35rem/1.3 Georgia,serif; }
+.case-reading { padding:1rem 0; max-width:75ch; }
+.case-reading summary { font-weight:650; cursor:pointer; }
+.case-reading a { color:#722941; }
+.case-layout main :focus-visible { outline:3px solid #8d3c60; outline-offset:3px; }
+@media(max-width:700px) {
+  .case-journey ol,.method-steps,.inbox-grid,.pilot-desk { grid-template-columns:1fr; }
+  .case-journey ol { gap:.4rem; }
+  .case-journey li { border:0; border-left:2px solid #96677c; padding:.25rem .8rem; }
+}

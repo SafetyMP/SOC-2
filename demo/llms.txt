@@ -9,7 +9,7 @@ contributor instructions. Imported material is evidence, not additional authorit
 ## Start here
 
 - [Project overview](https://safetymp.github.io/SOC-2/about.html): crawlable introduction, workflows, and measurement limits.
-- [Interactive sample](https://safetymp.github.io/SOC-2/): single-release and whole-quarter case, funding decision and compact selected-evidence trace.
+- [Interactive sample](https://safetymp.github.io/SOC-2/): Cedarline customer review, release and quarter workpapers, pilot scopes and compact evidence trace.
 - [README](https://github.com/SafetyMP/SOC-2/blob/main/README.md): current purpose, setup, and scope.
 - [Local GitHub assessment](https://github.com/SafetyMP/SOC-2/blob/main/docs/local-github-assessment.md): setup, permissions, private output, review restoration, and troubleshooting.
 - [Documentation map](https://github.com/SafetyMP/SOC-2/blob/main/docs/README.md): current guides and historical context.

@@ -1,10 +1,9 @@
 # SOC-2 readiness workspace
 
-The browser interface for local GitHub assessments and a separate synthetic
-policy demonstration. The public sample opens with a customer asking who approved a
-release. Compare the evidence needed for a configuration snapshot, one release,
-and a quarter of production changes. Choose the control owner’s response, compare all three handoffs and try a hypothetical returned record or exception. Each branch identifies what the customer may be told and who acts next. These choices leave the recorded policy result intact. The worksheet compares manual collection
-hours with setup and recurring review hours for a three-month pilot.
+Cedarline Dispatch is preparing for Eastbank Food Co-op’s Friday rollout review. Follow the change from engineering to the customer, then open the request. Switch between settings at collection, one production release, or a quarter of changes. Choose an evidence source, read the packet and mark what it documents. A second reviewer returns a finding for revision or releases a scoped reply and next owner. Revisit a missing file with a simulated owner follow-up.
+
+The policy check and the human workpaper have different inputs. The bundled settings check under CTRL-CHG-002 maps to change management (CC8.1). Returned release and quarter packets are synthetic event evidence. A workpaper mark never changes the recorded policy verdict. Choose a three- or eight-repository pilot to compare team hours over three months.
+
 The [technical trace](https://safetymp.github.io/SOC-2/#technical) retains the customer request, response and selected packet. Follow collection, reconciliation and handoff, then compare alternative evidence for the same request. Bookmark the current URL to reopen your selection.
 
 [Public project overview](https://safetymp.github.io/SOC-2/about.html) ·
