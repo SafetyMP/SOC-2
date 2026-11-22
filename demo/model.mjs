@@ -153,7 +153,7 @@ export const deployments = [
 ];
 
 export const changes = [
-  {pr: '217', sha: '1fcc82e', merge: '16:15', approvals: [['I. Wu','15:38'],['K. Bell','16:28']]},
+  {pr: '217', sha: '1fcc82e', merge: '16:15', approvals: [['I. Wu','15:38'],['I. Wu','16:02'],['K. Bell','16:28']]},
   {pr: '212', sha: 'c85b25a', merge: '09:12', approvals: [['A. Gray','08:40'],['K. Bell','09:02']]},
   {pr: '231', sha: '81c04bf', merge: '13:40', approvals: null},
   {pr: '224', sha: 'ef517c0', merge: '11:03', approvals: [['M. Roy','10:41'],['I. Wu','10:54']], archived: true}
@@ -171,7 +171,16 @@ export function reviewRow(deployment, selectedPR, mark, archiveOpen) {
   }
   if (deployment.sha !== change.sha) return {accepted: false, note: 'The selected change has a different commit. Reconcile the two source IDs.'};
   if (!change.approvals) return {accepted: mark === 'open', note: 'The review export is unavailable. Obtain the underlying events from the platform owner.'};
-  const timely = change.approvals.filter(([,time]) => time < change.merge).length;
-  if (timely < 2) return {accepted: mark === 'deviation', note: 'Only one review predates merge. Ask the change owner to investigate the sequence.'};
-  return {accepted: mark === 'supported', note: 'Both named approvals predate merge on the linked change.'};
+  const reviewers = premergeReviewers(change.approvals, change.merge);
+  if (reviewers.length === 0) return {accepted: mark === 'deviation', note: 'No named reviewer approved before merge. Send the sequence to the change owner.'};
+  if (reviewers.length === 1) return {accepted: mark === 'deviation', note: `Only ${reviewers[0]} approved before merge. The control requires two distinct reviewers. Send the sequence to the change owner.`};
+  return {accepted: mark === 'supported', note: `${reviewers.join(' and ')} approved before merge on the linked change.`};
+}
+
+export function premergeReviewers(approvals, mergeTime) {
+  const reviewers = new Set();
+  for (const [name, time] of approvals) {
+    if (name.trim() && time < mergeTime) reviewers.add(name.trim());
+  }
+  return [...reviewers];
 }

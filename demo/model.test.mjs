@@ -243,3 +243,22 @@ test('workpaper conclusions require matching sources, timely approvals and expli
   assert.equal(reviewRow(unavailable,'231','deviation',true).accepted,false);
   assert.equal(reviewRow(unavailable,'231','open',true).accepted,true);
 });
+
+test('two distinct people must approve before merge', async () => {
+  const {premergeReviewers, reviewRow, deployments, changes} = await import('./model.mjs');
+  assert.deepEqual(premergeReviewers([], '10:00'), []);
+  assert.deepEqual(premergeReviewers([['A','10:00'],['B','10:01']], '10:00'), []);
+  assert.deepEqual(premergeReviewers([['A','09:00'],['A','09:20'],['B','10:10']], '10:00'), ['A']);
+  assert.deepEqual(premergeReviewers([['A','09:00'],['B','09:20']], '10:00'), ['A','B']);
+  const late = deployments[1];
+  assert.match(reviewRow(late,'217','deviation',false).note, /Only I. Wu approved before merge/);
+  const change = changes.find(row => row.pr === '217');
+  const events = change.approvals;
+  try {
+    change.approvals = [];
+    assert.equal(reviewRow(late,'217','supported',false).accepted, false);
+    assert.match(reviewRow(late,'217','deviation',false).note, /No named reviewer/);
+  } finally {
+    change.approvals = events;
+  }
+});
