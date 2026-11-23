@@ -1,9 +1,6 @@
 # SOC-2 — local readiness workspace
 
-Assess GitHub repository settings, understand policy findings, and plan the next
-fix without sending your evidence to a hosted workspace. SOC-2 combines a local
-Python collector, OPA/Rego policy checks, and a browser interface for evidence
-review. A synthetic demo lets you explore the workflow before connecting anything.
+When a customer asks who approved a software change, the compliance lead often has to interrupt engineering to reconstruct the release. This workspace gives the team a reusable first piece of evidence. Its Python collector reads one repository’s GitHub settings, and OPA evaluates them against three checks. The dated report stays on the team’s computer. The lead can see which settings were observed and ask the release owner for the approvals tied to the version that shipped.
 
 **[Try the release evidence case](https://safetymp.github.io/SOC-2/)** ·
 [Project overview](https://safetymp.github.io/SOC-2/about.html) ·
@@ -15,7 +12,9 @@ review. A synthetic demo lets you explore the workflow before connecting anythin
 
 ## Try the release evidence case
 
-Eastbank Food Co-op is considering a rollout to two more depots. As Cedarline’s compliance lead, prepare the change evidence for Friday’s customer review. Inspect a release timeline or reconcile the quarter’s register, mark the workpaper and see whether a second reviewer can support the reply. An illustrative pilot compares two team sizes with manual settings collection. [Open the case](https://safetymp.github.io/SOC-2/#case) · [Trace the selected evidence](https://safetymp.github.io/SOC-2/#technical)
+Eastbank Food Co-op uses Cedarline’s dispatch software at one depot. On Friday it decides whether to add two more. Before more drivers depend on the system, its risk reviewer asks Priya, Cedarline’s compliance lead, who checked the June update. In the fictional case, inspect the release timeline and mark what Priya can support. Switch to the quarter’s register to see how the customer’s question changes the evidence she needs. [Open Eastbank’s case](https://safetymp.github.io/SOC-2/) · [Trace the selected evidence](https://safetymp.github.io/SOC-2/#technical)
+
+Would the collector earn its upkeep? Time the same set of customer requests with manual collection and with a saved report. Include the time spent resolving missing evidence, and ask a second reviewer whether each reply identifies the release and its approvals.
 
 ### Follow the evidence from collection to customer reply
 
