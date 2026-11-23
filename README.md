@@ -17,6 +17,12 @@ review. A synthetic demo lets you explore the workflow before connecting anythin
 
 Eastbank Food Co-op is considering a rollout to two more depots. As Cedarline’s compliance lead, prepare the change evidence for Friday’s customer review. Inspect a release timeline or reconcile the quarter’s register, mark the workpaper and see whether a second reviewer can support the reply. An illustrative pilot compares two team sizes with manual settings collection. [Open the case](https://safetymp.github.io/SOC-2/#case) · [Trace the selected evidence](https://safetymp.github.io/SOC-2/#technical)
 
+### Follow the evidence from collection to customer reply
+
+1. **Collect the settings.** For a real assessment the local GitHub sensor uses read-only requests for one named repository. It gathers default-branch protection, required reviews and status checks, and active workflow presence. The assessment writes sanitized observations to a private `evidence.json`. [GitHub sensor](sensors/github_assessment.py) · [Assessment and report writer](scripts/assess_github.py)
+2. **Evaluate the observation.** OPA applies the branch-protection and workflow policies to the collected settings. For example, the production review rule checks the required reviewer count and status-check setting. The dated `report.json` records each observed result, including missing evidence. [Branch and review policy](policies/change_mgmt/branch_protection_enforced.rego) · [Workflow policy](policies/change_mgmt/ci_required.rego) · [Assessment tests](scripts/test_assess_github.py)
+3. **Answer Eastbank about June.** The setting tells Priya what GitHub required at collection time. The release owner supplies the deployment record, version and approval history for the June change. The browser case supplies fictional versions of those records so you can mark a workpaper and hand it to a second reviewer. The reader’s mark leaves the collected verdict intact. [Case and technical guide](demo/app.js) · [Public fixture report](demo/data/sample-report.json) · [Local report viewer](scripts/serve_workspace.py)
+
 ## Choose your workflow
 
 | | Real GitHub assessment | Sample workspace |
