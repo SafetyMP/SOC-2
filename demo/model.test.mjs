@@ -247,7 +247,7 @@ test('customer requests and owner actions route all nine initial dispositions wi
     for (const action of Object.keys(evidenceActions)) {
       const result = evidenceDecision(scope, action);
       assert.equal(result.simulated, false);
-      assert.equal(result.claim, 'At collection, both fixture repositories required two reviews.');
+      assert.match(result.claim, /^At collection, both fixture repositories required two reviews\./);
       assert.ok(result.owner && result.next);
       titles.add(result.title);
     }
@@ -260,14 +260,12 @@ test('customer requests and owner actions route all nine initial dispositions wi
 
 test('hypothetical returns preserve gaps, exceptions and the boundaries of individual and sample claims', async () => {
   const {evidenceDecision} = await import('./model.mjs');
-  for (const scope of ['settings','release','quarter']) {
-    for (const action of ['release','quarter']) {
-      assert.match(evidenceDecision(scope, action, 'missing').claim, /incomplete/);
-      const exception = evidenceDecision(scope, action, 'exception');
-      assert.equal(exception.title, 'Escalate the observed exception');
-      assert.equal(exception.simulated, true);
-      assert.equal(exception.owner, 'Change owner');
-    }
+  for (const action of ['release','quarter']) {
+    assert.match(evidenceDecision(action, action, 'missing').claim, /incomplete/);
+    const exception = evidenceDecision(action, action, 'exception');
+    assert.equal(exception.title, action === 'quarter' ? 'Request the missing sample evidence' : 'Escalate the observed exception');
+    assert.equal(exception.simulated, true);
+    assert.equal(exception.owner, 'Change owner');
   }
   assert.equal(evidenceDecision('release','release','matched').title, 'Answer for this release');
   assert.equal(evidenceDecision('quarter','quarter','matched').title, 'Report the sample results');
@@ -282,7 +280,8 @@ test('a returned release trace leaves a settings-only handoff with the complianc
   const result = evidenceDecision('settings', 'release', 'matched');
   assert.equal(result.owner, 'Compliance lead');
   assert.equal(result.next, 'Answer the settings question with the dated observation. Ask whether the customer also needs release-specific evidence.');
-  assert.match(result.claim, /linked release has two approvals recorded before merge/);
+  assert.equal(result.claim, 'At collection, both fixture repositories required two reviews.');
+  assert.match(result.packetFinding, /Lee approved at 09:12 UTC/);
 });
 
 test('release packets present the sequence before their conditional interpretation', async () => {
@@ -334,5 +333,95 @@ test('technical comparison traces the selected scope and counts distinct premerg
     assert.match(packetTrace('release','exception'),/1 distinct reviewer before/);
   } finally {
     releasePackets.exception.events.pop();
+  }
+});
+
+test('working paper marks distinguish documented deviations from incomplete records', async () => {
+  const {reviewWorkpaper} = await import('./model.mjs');
+  for (const [scope, packet, expected] of [
+    ['release','matched','supported'], ['release','missing','gap'], ['release','exception','exception'],
+    ['quarter','matched','supported'], ['quarter','missing','gap'], ['quarter','exception','gap']
+  ]) {
+    for (const mark of ['supported','gap','exception']) {
+      const result = reviewWorkpaper(scope,packet,mark);
+      assert.equal(result.accepted, mark === expected);
+      assert.ok(result.feedback);
+    }
+  }
+  assert.match(reviewWorkpaper('release','exception','exception').feedback, /09:37.*09:30/);
+  assert.match(reviewWorkpaper('quarter','missing','gap').feedback, /REL-204/);
+  assert.match(reviewWorkpaper('quarter','exception','gap').feedback, /REL-203/);
+  for (const params of [['snapshot','matched','gap'],['release','pending','gap'],['quarter','toString','gap'],['release','matched','']]) {
+    assert.equal(reviewWorkpaper(...params), null);
+  }
+});
+
+test('working paper follows the deployed commit and distinct approvals on its PR before merge', async () => {
+  const {reviewWorkpaper, releasePackets} = await import('./model.mjs');
+  const packet = releasePackets.matched;
+  const events = packet.events;
+  try {
+    for (const patch of [{pr:61}, {reviewer:'Lee'}, {time:'09:30'}]) {
+      packet.events = events.map((row,i) => i===1 ? {...row,...patch} : row);
+      assert.equal(reviewWorkpaper('release','matched','gap').accepted,true);
+    }
+    packet.events = events.map(row => row.kind === 'deploy' ? {...row,commit:'0000000'} : row);
+    assert.equal(reviewWorkpaper('release','matched','gap').accepted,true);
+  } finally {
+    packet.events = events;
+  }
+});
+
+test('quarter review requires the reconciled inventory and distinct reviewers for every selected release', async () => {
+  const {reviewWorkpaper, quarterPackets} = await import('./model.mjs');
+  const packet = quarterPackets.matched;
+  const {register, sample} = packet;
+  try {
+    packet.register = [...register.slice(1), register[1]];
+    assert.equal(reviewWorkpaper('quarter','matched','gap').accepted,true);
+    packet.register = register;
+    packet.sample = sample.slice(0,2);
+    assert.equal(reviewWorkpaper('quarter','matched','gap').accepted,true);
+    packet.sample = sample.map((row,i) => i === 1 ? {...row,approvals:['Lee','Lee']} : row);
+    assert.match(reviewWorkpaper('quarter','matched','gap').feedback, /REL-203 has 1 documented/);
+  } finally {
+    packet.register = register;
+    packet.sample = sample;
+  }
+});
+
+test('customer release reply identifies both named reviewers and their timing relative to merge', async () => {
+  const {evidenceDecision} = await import('./model.mjs');
+  const onTime = evidenceDecision('release','release','matched');
+  const late = evidenceDecision('release','release','exception');
+  for (const result of [onTime, late]) {
+    assert.match(result.claim, /REL-204.*7c4f9ac.*PR #62.*09:30 UTC/);
+    assert.match(result.claim, /Lee approved at 09:12 UTC \(before merge\)/);
+  }
+  assert.match(onTime.claim, /Chen approved at 09:24 UTC \(before merge\)/);
+  assert.match(late.claim, /Chen approved at 09:37 UTC \(after merge\)/);
+});
+
+test('customer replies keep an off-scope finding separate and route the original unanswered request', async () => {
+  const {evidenceDecision} = await import('./model.mjs');
+  for (const returned of ['matched', 'missing', 'exception']) {
+    const named = evidenceDecision('release','quarter',returned);
+    assert.equal(named.title,'The named release still needs a trace');
+    assert.equal(named.owner,'Release owner');
+    assert.match(named.claim,/reviewers for REL-204 remain unconfirmed/);
+    assert(!named.claim.includes('REL-203'));
+    assert.equal(named.packetFinding,evidenceDecision('quarter','quarter',returned).claim);
+
+    const period = evidenceDecision('quarter','release',returned);
+    assert.equal(period.owner,'Change owner');
+    assert.match(period.claim,/April–June population and sampled approvals still need review/);
+    assert.equal(period.packetFinding,evidenceDecision('release','release',returned).claim);
+    assert.match(period.next,/quarter’s release population/);
+
+    for (const action of ['release', 'quarter']) {
+      const settings = evidenceDecision('settings',action,returned);
+      assert.equal(settings.owner,'Compliance lead');
+      assert.equal(settings.claim, 'At collection, both fixture repositories required two reviews.');
+    }
   }
 });

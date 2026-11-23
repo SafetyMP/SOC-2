@@ -1,11 +1,10 @@
 # SOC-2 readiness workspace
 
-The browser interface for local GitHub assessments and a separate synthetic
-policy demonstration. The public sample opens with a customer asking who approved a
-release. Compare the evidence needed for a configuration snapshot, one release,
-and a quarter of production changes. Choose the control owner’s response, compare all three handoffs and try a hypothetical returned record or exception. Each branch identifies what the customer may be told and who acts next. These choices leave the recorded policy result intact. The worksheet compares manual collection
-hours with setup and recurring review hours for a three-month pilot.
-The [technical trace](https://safetymp.github.io/SOC-2/#technical) retains the customer request, response and selected packet. Follow collection, reconciliation and handoff, then compare alternative evidence for the same request. Bookmark the current URL to reopen your selection.
+Cedarline Dispatch is preparing for Eastbank Food Co-op’s Friday rollout review. Start with the depot rollout and the purpose of SOC 2. See which settings the local collector can check for Priya, then open the June timeline and decide what the record supports. Switch records to compare the outcomes. The optional evidence-source controls also cover settings at collection and a quarter of changes. A second reviewer returns a finding for revision or releases a scoped reply and next owner. Revisit a missing file with a simulated owner follow-up.
+
+The policy check and the human workpaper have different inputs. The bundled settings check under CTRL-CHG-002 maps to change management (CC8.1). Returned release and quarter packets are synthetic event evidence. A workpaper mark never changes the recorded policy verdict. Choose a three- or eight-repository pilot to compare team hours over three months.
+
+The [technical trace](https://safetymp.github.io/SOC-2/#technical) opens with the case question and selected file. Try three branch configurations, trace the owner’s record, and inspect the customer reply after review. Comparing another file keeps the case finding intact. Bookmark the URL to resume.
 
 [Public project overview](https://safetymp.github.io/SOC-2/about.html) ·
 [Interactive sample](https://safetymp.github.io/SOC-2/)

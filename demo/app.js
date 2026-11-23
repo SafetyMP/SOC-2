@@ -1,4 +1,4 @@
-import {packetTrace,quarterDeployments,quarterPackets,releasePackets,evidenceActions,evidenceReturns,evidenceDecision,pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
+import {reviewWorkpaper,packetTrace,quarterDeployments,quarterPackets,releasePackets,evidenceActions,evidenceReturns,evidenceDecision,pilotHours,ATTENTION,LABELS,STATUSES,domainLabel,escapeHTML as h,summarize,validateReport,filterControls,filtersForPage,parseWorkspaceImport,validateReviewNotes,REVIEW_PROGRESS,reviewProgress,prioritySort,sourceURL,nextAction,isLocalWorkspace} from './model.mjs';
 
 const paths={grid:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',flag:'M5 21V3m0 1h13l-3 5 3 5H5',shield:'M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6z M8 12l3 3 5-6',file:'M14 3H5v18h14V8z M14 3v5h5 M8 12h8 M8 16h6',layers:'M12 3l9 5-9 5-9-5z M3 12l9 5 9-5 M3 16l9 5 9-5',arrow:'M5 12h14 M13 6l6 6-6 6',down:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5',search:'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',book:'M12 5v16 M12 5C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-3-1-6-2-10 1',check:'M5 12l4 4L19 6',close:'M6 6l12 12 M6 18L18 6',clock:'M12 8v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',key:'M14 4a5 5 0 1 1-3 9L4 20H1v-3l8-8a5 5 0 0 1 5-5z',info:'M12 11v6 M12 7h.01 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',refresh:'M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 2 M4 17l2 2a8 8 0 0 0 13-2',code:'M8 5l-6 7 6 7 M16 5l6 7-6 7',external:'M14 3h7v7 M21 3L10 14 M10 3H3v18h18v-7'};
 const icon=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.shield}"/></svg>`;
@@ -53,125 +53,161 @@ let selectedAction = '';
 let returnedEvidence = 'pending';
 const pilotAssumptions = {repositories: 8, manualMinutes: 25, collectorMinutes: 10, setupHours: 4};
 const canShowCase = () => !real() && !imported && !(localWorkspace && ['1','viewer'].includes(new URLSearchParams(location.search).get('local')));
-function caseResponse() {
-  const request = requests[selectedRequest];
-  const records = request.evidence.map((name, index) => `<li class="${index ? 'needed' : 'held'}"><span>${name}</span><small>${index ? 'Outside fixture' : 'In fixture'}</small></li>`).join('');
-  return `<figure class="scope-figure scope-${selectedRequest}"><figcaption>Illustrative timeline · ${request.label}</figcaption>
-    <div class="scope-track" aria-hidden="true"><i></i><i></i><i></i></div>
-    <div class="scope-axis"><span>Quarter opens</span><span>${selectedRequest === 'settings' ? 'Settings observed' : 'Release under review'}</span><span>Quarter closes</span></div>
-    </figure><figure class="record-map"><figcaption>Records for this request</figcaption><ol>${records}</ol></figure>`;
-}
+const questions = {
+  settings: 'Which review settings were in place when Priya collected the evidence?',
+  release: 'Did two people approve the June update before it was merged?',
+  quarter: 'What do the sampled changes show about reviews between April and June?'
+};
+const sourceLabels = {snapshot:'Settings snapshot', release:'June release record', quarter:'Quarter register'};
+const recordNames = {
+  release: {matched:'Review log 1', exception:'Review log 2', missing:'Deployment ticket'},
+  quarter: {matched:'Register 1', exception:'Register 2', missing:'Register 3'}
+};
+const markLabels = {
+  release: {supported:'Two approvals in time', gap:'Need more evidence', exception:'An approval came late'},
+  quarter: {supported:'Two approvals for each sampled release', gap:'Need more evidence', exception:'A sampled approval came late'}
+};
+const profiles = {
+  team: {label:'One team · 3 repositories', repositories:3},
+  platform: {label:'Shared platform · 8 repositories', repositories:8}
+};
 
 function actionOutcome() {
   const outcome = evidenceDecision(selectedRequest, selectedAction, returnedEvidence);
-  if (!outcome) return '<p>Choose a response to see what the compliance lead can report and who acts next.</p>';
-  const interpretation = `<p class="eyebrow">${outcome.simulated ? 'Hypothetical return' : 'With the current fixture'}</p>
-    <h3>${outcome.title}</h3><dl><dt>Customer response</dt><dd>${outcome.claim}</dd>
-    <dt>Next owner · ${outcome.owner}</dt><dd>${outcome.next}</dd></dl>`;
-  if (!outcome.simulated) return interpretation;
-  const packet = selectedAction === 'release' ? releasePacketView() : quarterPacketView();
-  return `${packet}<details class="packet-reading"><summary>Compare your reading with the case interpretation</summary>${interpretation}</details>`;
+  if (!outcome) return '';
+  const followUp = `<p><b>${outcome.owner}</b> · ${outcome.next}</p>${outcome.packetFinding && selectedRequest !== selectedAction ? `<p>Separate finding: ${outcome.packetFinding}</p>` : ''}`;
+  const nextMeeting = selectedRequest === 'release' && selectedAction === 'release' ? {
+    matched:'Alex can take this release example to Friday’s meeting.',
+    missing:'Alex keeps the release question open while Priya requests the missing link.',
+    exception:'Before the rollout decision, Alex asks how Cedarline handled the late sign-off.'
+  }[returnedEvidence] : '';
+  const response = `<p class="reply-to"><b>Priya’s reply to Alex</b><br>${outcome.claim}</p>${nextMeeting ? `<p>${nextMeeting}</p>` : ''}
+    <details><summary>Who follows up?</summary>${followUp}</details>`;
+  if (!outcome.simulated) return `<div class="case-disposition" role="status"><h3>${outcome.title}</h3>${response}</div>`;
+  const review = reviewWorkpaper(selectedAction, returnedEvidence, mark);
+  return `${selectedAction === 'release' ? releasePacketView() : quarterPacketView()}
+    <div class="paper-signoff"><h3 id="mark-prompt">What does this record support?</h3>
+      <div class="case-picks" role="group" aria-labelledby="mark-prompt">${Object.entries(markLabels[selectedAction]).map(([key,label]) =>
+        `<button type="button" data-mark="${key}" aria-pressed="${mark===key}">${label}</button>`).join('')}</div>
+      <div role="status" aria-live="polite">${review ? review.accepted
+        ? `<div class="case-disposition"><small>Second reviewer accepted your finding</small>${response}</div>`
+        : `<p><b>Recheck the record.</b> ${review.feedback}</p>` : ''}</div>
+      ${review?.accepted && returnedEvidence==='missing' ? `<button class="case-primary" id="owner-follow-up">${selectedAction==='quarter' ? 'Request the archived register entry' : 'Request the linked release records'}</button>` : ''}
+    </div>`;
 }
 
-function releasePacketView() {
-  const packet = releasePackets[returnedEvidence];
-  return `<figure class="release-packet"><figcaption>${packet.label} · REL-204</figcaption>
-    <p>Illustrative records from one day, in UTC. Which approvals can you link to the merged commit?</p>
-    <ol>${packet.events.map(record => `<li><time>${record.time}</time><span>${record.event}</span></li>`).join('')}</ol></figure>`;
+function releasePacketView(key = returnedEvidence) {
+  const packet = releasePackets[key];
+  const merge = packet.events.find(event => event.kind === 'merge');
+  if (!merge) return `<figure class="release-packet lone-ticket"><figcaption>Deployment ticket · REL-204</figcaption>
+    <p><time>${packet.events[0].time} UTC</time> · ${packet.events[0].event}</p></figure>`;
+  return `<figure class="release-packet"><figcaption>REL-204 · Sequence of events (UTC)</figcaption>
+    <ol class="event-strip">${packet.events.map(row => {
+      const label = row.reviewer ? row.reviewer + ' approved' : row.kind === 'merge' ? 'Code merged' : 'Update deployed';
+      const references = [row.pr && 'Change #' + row.pr, row.commit && 'Version ' + row.commit].filter(Boolean).join(' · ');
+      return `<li class="${row.kind==='merge'?'merge-event':''}"><time>${row.time}</time><span>${label}<small>${references}</small></span></li>`;
+    }).join('')}</ol><small>At merge, the team accepts the change. At deployment, that version reaches the drivers.</small></figure>`;
 }
 
-function quarterPacketView() {
-  const packet = quarterPackets[returnedEvidence];
-  const approvals = packet.sample.length ? `<dl class="sample-approvals">
-    ${packet.sample.map(row => `<div><dt>${row.release}</dt><dd>${row.approvals.join(' and ')}</dd></div>`).join('')}</dl>` :
-    '<p>The packet includes no sampled approval records.</p>';
-  return `<figure class="release-packet quarter-packet"><figcaption>${packet.label} · April–June 2026</figcaption>
-    <p>Compare the two illustrative inventories. The agreed sample takes every other release in deployment order, starting with the first, once the inventories reconcile.</p>
-    <dl class="period-records"><dt>Delivery log</dt><dd>${quarterDeployments.join(' · ')}</dd>
-    <dt>Change register</dt><dd>${packet.register.join(' · ')}</dd></dl>
-    <h4>Reviewers with documented approval before merge</h4>${approvals}
-    <p>Which releases can the compliance lead describe to the customer?</p></figure>`;
+function quarterPacketView(key = returnedEvidence) {
+  const packet = quarterPackets[key];
+  return `<figure class="release-packet quarter-packet"><figcaption>${recordNames.quarter[key]} · April–June 2026</figcaption>
+    <p>Match the change register to the deployment log. The agreed sample takes every other release, starting with the first, after the lists reconcile.</p>
+    <dl class="period-records"><dt>Deployment log</dt><dd>${quarterDeployments.join(' · ')}</dd><dt>Change register</dt><dd>${packet.register.join(' · ')}</dd></dl>
+    ${packet.sample.length ? `<h4>Documented approvals before merge</h4><dl class="sample-approvals">${packet.sample.map(row => `<div><dt>${row.release}</dt><dd>${row.approvals.join(' and ')}</dd></div>`).join('')}</dl>` : '<p>No sample records enclosed.</p>'}</figure>`;
 }
 
 function returnOptions() {
   const choices = evidenceReturns[selectedAction];
   if (!choices) return '';
-  return `<label class="case-select">Simulate a response from the owner<select id="evidence-return">
-    ${Object.entries(choices).map(([value, label]) => `<option value="${value}" ${returnedEvidence === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
-    <p class="case-return-note">These possible replies explore what happens next. The bundled fixture contains only the settings snapshot.</p>`;
+  const names = recordNames[selectedAction];
+  return `<p class="scenario-note">Try a different version of the ${selectedAction === 'release' ? 'June release' : 'quarterly review'}. Each scenario shows the file Priya receives.</p><div class="case-picks record-picker" role="group" aria-label="Try a different owner record">${Object.entries(names).map(([key,label]) =>
+    `<button type="button" data-packet="${key}" aria-pressed="${returnedEvidence===key}">${label}</button>`).join('')}</div>`;
 }
 
-function compareActions() {
-  return Object.entries(evidenceActions).map(([key, label]) => {
-    const initial = evidenceDecision(selectedRequest, key);
-    return `<div><dt>${label}</dt><dd>${initial.title}. Next owner: ${initial.owner}.</dd></div>`;
-  }).join('');
-}
-
-function decisionForm() {
-  return `<fieldset class="case-actions"><legend>How will the platform control owner respond?</legend>
-    ${Object.entries(evidenceActions).map(([key, label]) => `<label><input type="radio" name="evidence-action" value="${key}" ${selectedAction === key ? 'checked' : ''}>${label}</label>`).join('')}
-    </fieldset><div id="return-options">${returnOptions()}</div>
-    <div class="case-disposition" id="action-outcome" aria-live="polite">${actionOutcome()}</div>
-    <details class="case-comparison"><summary>Compare the three initial responses</summary><dl id="compare-actions">${compareActions()}</dl></details>`;
+function decisionForm(control) {
+  const current = sourceLabels[selectedAction];
+  const sameScope = selectedAction === selectedRequest || (selectedAction === 'snapshot' && selectedRequest === 'settings');
+  return `<p class="case-question">${questions[selectedRequest]}</p>
+    ${current && !sameScope ? `<p class="scope-warning">You’re reading the ${current.toLowerCase()} for a question about ${requests[selectedRequest].label.toLowerCase()}.</p>` : ''}
+    ${selectedAction ? `<div id="return-options">${returnOptions()}${ownerFollowUp ? '<p role="status">The owner has supplied a new file. Check it before revising your answer.</p>' : ''}</div><div id="action-outcome">${actionOutcome()}</div>` : ''}
+    <details class="alternate-file" ${alternateOpen ? 'open' : ''}><summary>Explore another question or evidence source</summary>
+      <div class="inbox-grid"><label class="case-select">Eastbank’s question<select id="case-request">${Object.entries(requests).map(([key,entry])=>`<option value="${key}" ${selectedRequest===key?'selected':''}>${entry.label}</option>`).join('')}</select></label>
+      <label class="case-select">Priya’s evidence source<select id="case-source">${Object.entries(sourceLabels).map(([key,label])=>`<option value="${key}" ${selectedAction===key?'selected':''}>${label}</option>`).join('')}</select></label></div>
+      <p class="settings-card">Settings file · ${date(control.collected_at)} · ${h(control.id)} <b>${h(control.status)}</b><br>Both sampled repositories require two reviews and status checks. The release owner supplies the event log separately.</p>
+    </details>`;
 }
 
 function barRow(label, value, max, display) {
   return `<div class="case-bar"><span>${label}</span><progress aria-label="${label}" value="${value}" max="${max}"></progress><b>${display}</b></div>`;
 }
-
 function pilotResult() {
   const result = pilotHours(pilotAssumptions);
-  if (!result) return 'Enter valid values in all four fields to calculate the comparison.';
   const format = value => value.toLocaleString('en-US', {maximumFractionDigits: 2});
-  const balance = result.saved === 0 ? 'Both options use the same time.' :
-    `The collector takes ${format(Math.abs(result.saved))} ${Math.abs(result.saved) === 1 ? 'hour' : 'hours'} ${result.saved > 0 ? 'less' : 'more'}.`;
   const scale = Math.max(1, result.manual, result.collector);
-  return `<figure class="case-chart"><figcaption>Team hours over three months</figcaption>
-    ${barRow('Manual collection', result.manual, scale, format(result.manual) + ' h')}
-    ${barRow('Local pilot including setup', result.collector, scale, format(result.collector) + ' h')}
-    </figure><strong>${balance}</strong> Recovering setup requires saving ${format(result.threshold)} minutes per repository per month.`;
+  return `<figure class="case-chart"><figcaption>Staff time over three months</figcaption>
+    ${barRow('Manual collection',result.manual,scale,format(result.manual)+' h')}
+    ${barRow('Local pilot with setup',result.collector,scale,format(result.collector)+' h')}</figure>
+    <strong>${result.saved===0 ? 'Both options take the same time.' : `The pilot takes ${format(Math.abs(result.saved))} hours ${result.saved>0?'less':'more'}.`}</strong>`;
+}
+
+function sponsorView() {
+  const accepted = reviewWorkpaper(selectedAction,returnedEvidence,mark)?.accepted;
+  if (!selectedAction || (returnedEvidence !== 'pending' && !accepted)) return '';
+  return `<section class="case-section"><p class="eyebrow">Priya’s proposal · Three monthly collections</p>
+    <h2>Should the team collect settings locally?</h2><p>Engineering now gathers the same settings by hand for each customer review. The proposed pilot collects them once a month. Release owners still supply the approval records.</p>
+    <div class="pilot-desk"><div><h3>Choose a pilot scope</h3><div class="case-picks" role="group" aria-label="Pilot scope">${Object.entries(profiles).map(([key,profile]) =>
+      `<button data-profile="${key}" aria-pressed="${pilotAssumptions.repositories===profile.repositories}">${profile.label}</button>`).join('')}</div>
+      <p>Illustrative assumptions for ${pilotAssumptions.repositories} repositories: ${pilotAssumptions.manualMinutes} minutes each by hand, ${pilotAssumptions.collectorMinutes} minutes with the collector, and ${pilotAssumptions.setupHours} hours to set up.</p></div>
+      <div class="case-response" id="pilot-result" aria-live="polite">${pilotResult()}</div></div>
+    <label class="case-select">What would you fund?<select id="sponsor">${Object.entries({'':'Choose a recommendation',hold:'Retain manual collection',pilot:'Authorize the measured pilot',expand:'Consider expansion'}).map(([key,label])=>`<option value="${key}" ${sponsor===key?'selected':''}>${label}</option>`).join('')}</select></label><p id="sponsor-memo" aria-live="polite">${sponsorMemo()}</p></section>`;
 }
 
 function caseView() {
   const control = report.controls.find(item => item.id === 'CTRL-CHG-002');
-  const input = (key, label, min, max) => `<label>${label}<input data-pilot="${key}" type="number" min="${min}" max="${max}" step="1" required value="${Number.isFinite(pilotAssumptions[key]) ? pilotAssumptions[key] : ''}"></label>`;
   return `<article class="change-case">
-    <header class="case-head"><div class="case-intro"><p class="eyebrow">Change management · Synthetic case</p>
-      <h1>Who approved the release?</h1>
-      <p>A customer’s vendor-risk reviewer asks who approved a production release. You lead compliance at the service provider. Your platform owner sends a passing branch-settings check. What can you tell the customer?</p></div>
-      <div class="case-record"><p class="eyebrow">Recorded fixture</p><h2>Required reviews</h2>
-        <div class="case-record-line"><code>core-service</code><span class="review-marks" aria-hidden="true">● ●</span><b>2</b></div>
-        <div class="case-record-line"><code>infra-modules</code><span class="review-marks" aria-hidden="true">● ●</span><b>2</b></div>
-        <p>${status(control)} <span>CTRL-CHG-002</span></p>
-        <p class="record-note">The fixture records a rule requiring two approvals in each repository. It contains no individual sign-offs.</p>
-      </div></header>
-    <section class="case-section"><h2>What did the customer request?</h2>
-      <p>Keep the same record and change the scope of the question.</p>
-      <label class="case-select">Evidence requested<select id="case-request">${Object.entries(requests).map(([key, entry]) => `<option value="${key}" ${selectedRequest === key ? 'selected' : ''}>${entry.label}</option>`).join('')}</select></label>
-      <div id="case-response" class="case-response" aria-live="polite">${caseResponse()}</div>
-      ${decisionForm()}
-    </section>
-    <section class="case-section"><p class="eyebrow">Business case</p><h2>Would you fund three months of local collection?</h2>
-      <p>As compliance lead, you sponsor the pilot and decide whether to expand it. The platform control owner times two ways of gathering the same three GitHub settings checks each month. Include collection, review and follow-up in both estimates. Release approvals still need their own records.</p>
-      <div class="case-inputs">${input('repositories','Repositories',1,10000)}${input('manualMinutes','Manual collection and review minutes per repository',0,10000)}${input('collectorMinutes','Collector and review minutes per repository',0,10000)}${input('setupHours','One-time setup hours',0,10000)}</div>
-      <div class="case-response" id="pilot-result" aria-live="polite">${pilotResult()}</div>
-      <p>These starting values are illustrative. Use the same repositories for both methods. At the end of month three, ask a second reviewer to retrieve the dated source for each observation and identify every unreadable setting. Expand only if the team recovers its setup time, every observation remains traceable and all evidence gaps are visible. Otherwise keep manual collection for the affected repositories.</p>
-      <label class="case-select">Sponsor decision<select id="sponsor">${Object.entries({'':'Choose a funding decision',hold:'Retain manual collection',pilot:'Authorize the measured pilot',expand:'Consider expansion'}).map(([key,label])=>`<option value="${key}" ${sponsor===key?'selected':''}>${label}</option>`).join('')}</select></label><p id="sponsor-memo" aria-live="polite">${sponsorMemo()}</p>
-    </section>
-    <p class="case-links"><a href="#technical">Inspect the method, sources and report</a></p></article>`;
+    <header class="case-head"><div class="case-intro"><p class="eyebrow">Cedarline Dispatch · Fictional customer assurance case</p>
+    <h1>One dispatch system. Three depots?</h1><p>Every morning, Eastbank Food Co-op uses Cedarline’s software to tell its drivers which stores to visit. One depot relies on those routes today. On Friday, Eastbank decides whether to move two more depots onto the same system.</p>
+    <p>A faulty update could send drivers to the wrong stores. Before more deliveries depend on Cedarline, Alex, Eastbank’s risk reviewer, asks Cedarline’s compliance lead, Priya, for one example. Who checked the June update before it reached the drivers?</p></div>
+    <figure class="depot-map"><figcaption>Who would depend on the next update?</figcaption><div class="dispatch-hub">Cedarline’s dispatch software</div>
+      <ul>${['Using it today','Proposed','Proposed'].map((label,i)=>`<li class="${i?'planned':'live'}"><i aria-hidden="true"><span></span></i><strong>Depot ${i+1}</strong><small>${label}</small></li>`).join('')}</ul></figure></header>
+
+    <section class="case-section soc-primer"><h2>Why Eastbank asks for SOC 2 evidence</h2>
+      <p>A SOC 2 report gives customers an independent view of a service provider’s safeguards. A certified public accountant (CPA) examines those safeguards against published criteria and reports the findings. Eastbank can use that report when deciding whether to trust more deliveries to Cedarline.</p>
+      <p>One criterion, <strong>CC8.1</strong>, covers how a provider manages changes to its systems. Cedarline’s own rule requires two people to approve new code before the team merges it into the version prepared for release. Alex wants evidence that the rule was followed in June.</p>
+      <h3>What changes for Priya and engineering?</h3>
+      <p>Today, each customer request sends an engineer back to GitHub to look up the settings and send Priya a screenshot. The workspace splits that job in two.</p>
+      <dl class="evidence-bridge">
+        <div><dt>A settings check the team can reuse</dt><dd>Priya runs the local collector on one repository. It reads the settings, applies the same policy each time and saves a dated result with its source. Another reviewer can reopen it. If access is missing, the owner can restore access and rerun the check.</dd></div>
+        <div><dt>A focused request for the release owner</dt><dd>The settings describe what GitHub requires on the day of collection. To answer Alex’s June question, Priya asks for the deployed version and its approval history. She can now name the exact record she needs.</dd></div></dl>
+      <button class="case-primary" id="open-brief">${briefOpen ? 'Return to the open record' : 'Read the June release record'}</button></section>
+    ${briefOpen ? `<section class="case-section guided-case" aria-labelledby="brief-title"><p class="eyebrow">Eastbank’s evidence request</p><h2 id="brief-title" tabindex="-1">${selectedRequest==='release' ? 'The June release record' : requests[selectedRequest].label}</h2>
+    ${decisionForm(control)}</section>${sponsorView()}
+    <p class="case-links"><a href="#technical">Trace this evidence in the technical guide</a></p>` : ''}
+    <details class="case-reading"><summary>Case background and sources</summary><p>Cedarline, Eastbank and their records are fictional. The case draws on how provider assurance teams handle customer reviews and how GitHub records required reviews. SOC 2 examinations and opinions belong to independent CPAs.</p><p><a href="https://handbook.gitlab.com/handbook/security/security-assurance/field-security/customer-security-assessment-process/">Customer assessment workflow</a> · <a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets">GitHub review rules</a> · <a href="https://www.aicpa-cima.com/resources/download/get-description-criteria-for-your-organizations-soc-2-r-report">AICPA description criteria</a> · <a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA illustrative report</a></p></details>
+  </article>`;
 }
 
-const traceStages = ['Collection', 'Reconciliation', 'Handoff'];
+const traceStages = ['Check settings', 'Trace the record', 'Handoff'];
+const policyExamples = {
+  matched: {label:'Two reviews required', input:'2 required reviews · status checks required', result:'PASS', action:'Priya can reuse this dated settings observation in the customer review.'},
+  weak: {label:'One review required', input:'1 required review · status checks required', result:'FAIL', action:'The repository owner can raise the review requirement and rerun collection to verify the change.'},
+  missing: {label:'Settings unavailable', input:'No readable branch configuration', result:'MISSING', action:'The repository owner can check read access and collect again. Priya keeps the question open.'}
+};
 let stage = 0;
 let trial = 'matched';
 let sponsor = '';
+let mark = '';
+let ownerFollowUp = false;
 const caseQuery = new URLSearchParams(location.search);
+let briefOpen = caseQuery.has('action') || caseQuery.has('scope') || caseQuery.get('brief') === 'open';
 if (Object.hasOwn(requests, caseQuery.get('scope'))) selectedRequest = caseQuery.get('scope');
 if (Object.hasOwn(evidenceActions, caseQuery.get('action'))) selectedAction = caseQuery.get('action');
 if (Object.hasOwn(evidenceReturns[selectedAction] || {}, caseQuery.get('packet'))) returnedEvidence = caseQuery.get('packet');
 if (['matched','missing','exception'].includes(caseQuery.get('trial'))) trial = caseQuery.get('trial');
-if (selectedRequest === 'settings' && trial === 'exception') trial = 'matched';
+let policyExample = Object.hasOwn(policyExamples, caseQuery.get('policy')) ? caseQuery.get('policy') :
+  (selectedRequest === 'settings' && trial === 'missing' ? 'missing' : 'matched');
+let comparingRecords = caseQuery.get('compare') === '1';
 if (['0','1','2'].includes(caseQuery.get('stage'))) stage = Number(caseQuery.get('stage'));
 if (['hold','pilot','expand'].includes(caseQuery.get('sponsor'))) sponsor = caseQuery.get('sponsor');
 for (const key of Object.keys(pilotAssumptions)) {
@@ -179,9 +215,16 @@ for (const key of Object.keys(pilotAssumptions)) {
   const n = Number(caseQuery.get(key));
   if (Number.isInteger(n) && n >= (key==='repositories'?1:0) && n<=10000) pilotAssumptions[key] = n;
 }
+if (reviewWorkpaper(selectedAction, returnedEvidence, caseQuery.get('mark'))) mark = caseQuery.get('mark');
+ownerFollowUp = caseQuery.get('followup')==='1' && returnedEvidence==='matched' && ['release','quarter'].includes(selectedAction);
+if (briefOpen && !selectedAction) {
+  selectedAction = selectedRequest === 'settings' ? 'snapshot' : selectedRequest;
+  returnedEvidence = selectedAction === 'snapshot' ? 'pending' : 'matched';
+}
+let alternateOpen = false;
 function saveSelection() {
   const url = new URL(location.href);
-  for (const [key,value] of Object.entries({scope:selectedRequest,action:selectedAction,packet:returnedEvidence,stage,trial,sponsor,...pilotAssumptions})) {
+  for (const [key,value] of Object.entries({scope:briefOpen ? selectedRequest : '',brief:briefOpen ? 'open' : '',action:selectedAction,packet:returnedEvidence,stage,trial,policy:policyExample,compare:comparingRecords?'1':'',sponsor,mark,followup:ownerFollowUp ? '1' : '',...pilotAssumptions})) {
     if (value === '' || Number.isNaN(value)) url.searchParams.delete(key);
     else url.searchParams.set(key,value);
   }
@@ -190,39 +233,74 @@ function saveSelection() {
 function sponsorMemo() {
   const hours = pilotHours(pilotAssumptions);
   if (!sponsor || !hours) return '';
-  const savings = hours.saved.toLocaleString('en-US',{maximumFractionDigits:2});
-  if (sponsor === 'hold') return `Manual collection continues. Record the modeled three-month difference (${savings} hours saved by the pilot) and review again after timing the next collection.`;
-  if (sponsor === 'pilot') return `Approve ${pilotAssumptions.setupHours} setup hours for ${pilotAssumptions.repositories} repositories. Time the same checks each month and have a second reviewer retrieve the source for each observation.`;
+  const savings = Math.abs(hours.saved).toLocaleString('en-US',{maximumFractionDigits:2});
+  if (sponsor === 'hold') return `Manual collection continues. Record the modeled three-month difference (${savings} hours ${hours.saved >= 0 ? 'saved' : 'added'} by the pilot) and review again after timing the next collection.`;
+  if (sponsor === 'pilot') return hours.saved <= 0
+    ? `The pilot uses ${savings} extra hours at this scope. Proceed only if the trial shows a traceability benefit worth that time.`
+    : `The model releases ${savings} hours. Before expanding, ask a second reviewer to retrieve each dated observation and flag every unreadable setting.`;
   return hours.saved <= 0 ? 'Expansion returns to the sponsor. The model shows no net hours recovered; remeasure collection effort before broadening scope.' : `Expansion remains conditional. The model recovers ${savings} hours. Verify source retrieval and record every unreadable setting before authorizing additional repositories.`;
 }
+function settingsLab(control) {
+  const example = policyExamples[policyExample];
+  return `<h2>What can GitHub settings establish?</h2>
+    <p>The Python collector reads one repository’s default-branch settings. For this check, Cedarline’s policy requires at least two approving reviews and required status checks.</p>
+    <fieldset class="policy-input"><legend>Try a branch configuration</legend><div class="case-picks">${Object.entries(policyExamples).map(([key,item]) =>
+      `<button data-policy="${key}" aria-pressed="${policyExample===key}">${item.label}</button>`).join('')}</div></fieldset>
+    <dl class="policy-flow" aria-live="polite"><div><dt>Collector input</dt><dd>${example.input}</dd></div>
+      <div><dt>Check result</dt><dd><strong>${example.result}</strong></dd></div>
+      <div><dt>Next action</dt><dd>${example.action}</dd></div></dl>
+    <p class="trace-caption">Illustrative inputs. The saved sample records <b>${h(control.status)}</b> on ${date(control.collected_at)} for ${h(control.id)}. June’s approval history comes from the release owner.</p>`;
+}
+
+function recordLab(source, key, control) {
+  if (source === 'snapshot') return `<h2>Read the dated settings file</h2>
+    <dl class="trace-fields"><div><dt>Observation</dt><dd>${date(control.collected_at)} · ${h(control.id)} · ${h(control.status)}</dd></div>
+    <div><dt>Source in the sample</dt><dd><code>${h(control.source.payload)}</code></dd></div></dl>
+    <p>Both synthetic repositories required two reviews and status checks when collected. A reviewer can reopen this source to check Priya’s statement.</p>`;
+  if (key === 'pending') return `<h2>Waiting for the owner’s record</h2><p>Priya has requested the ${sourceLabels[source].toLowerCase()}. The owner’s file is needed to trace the change.</p>`;
+  const release = source === 'release';
+  const renderPacket = release ? releasePacketView : quarterPacketView;
+  const name = recordNames[source][key];
+  const options = Object.entries(recordNames[source]).map(([value,label]) =>
+    `<option value="${value}" ${trial===value?'selected':''}>${label}</option>`).join('');
+  return `<h2>${release ? 'Which version reached the drivers?' : 'Which releases can Priya test?'}</h2>
+    <p>${release ? 'Start at deployment. Look for the same version at merge, then use the change number to find its approvals.' : 'Match the deployment log to the register before checking the approval records for the agreed sample.'}</p>
+    <p class="trace-file"><b>${name}</b> · ${briefOpen ? 'Case record' : 'Example record'}</p>${renderPacket(key)}
+    <details class="trace-compare" ${comparingRecords?'open':''}><summary>Compare an alternative record</summary>
+    <label class="case-select">Comparison file<select id="trace-trial">${options}</select></label>
+    <div class="trace-comparison">${trial===key ? '<p>This is the file shown above. Choose another to inspect the difference.</p>' : packetTrace(source,trial)}</div></details>`;
+}
+
+function reviewHandoff() {
+  const response = evidenceDecision(selectedRequest, selectedAction, returnedEvidence);
+  const review = reviewWorkpaper(selectedAction, returnedEvidence, mark);
+  if (!response) return '<h2>Prepare a customer reply</h2><p>Open the June record in the case and make a finding. Its review and next owner will appear here.</p>';
+  if (response.simulated && !review?.accepted) return `<h2>${review ? 'Revise the finding' : 'The record is ready for review'}</h2>
+    <p>Priya records what the file supports. A second reviewer checks the finding before Alex gets a reply.</p>`;
+  return `<h2>${response.title}</h2><dl class="trace-fields">
+    ${review?.accepted ? `<div><dt>Accepted finding</dt><dd>${markLabels[selectedAction][mark]}</dd></div>` : ''}
+    <div><dt>What Alex can use</dt><dd>${response.claim}</dd></div><div><dt>Next owner</dt><dd><b>${response.owner}</b> · ${response.next}</dd></div></dl>
+    <p class="trace-caption">Review notes keep the owner and next action with the finding. A new collection is needed to verify a settings change.</p>`;
+}
+
 function caseGuide() {
   const control = report.controls.find(c => c.id === 'CTRL-CHG-002');
-  const scope = selectedRequest;
-  const packets = scope === 'quarter' ? quarterPackets : releasePackets;
-  const response = evidenceDecision(scope, selectedAction, returnedEvidence);
-  const selected = evidenceReturns[selectedAction]?.[returnedEvidence] || 'Dated settings only';
-  let detail;
-  if (stage === 0) {
-    detail = `<p><b>${control.status} · ${control.id}</b> evaluated the review and status-check settings for two repositories. The fixture captures no event-level approvals.</p><code>${h(control.source.payload)}</code>`;
-  } else if (stage === 1) {
-    const selectedTrace = returnedEvidence !== 'pending' && ['release','quarter'].includes(selectedAction)
-      ? packetTrace(selectedAction, returnedEvidence) : '';
-    detail = `<p>${scope === 'quarter' ? 'Reconcile the April–June deployment inventory to the change register, then inspect the agreed sample.' : scope === 'release' ? 'Follow REL-204 to its deployed commit, then compare PR #62 approval times to the merge.' : 'Match the dated configuration observation to its repository and policy.'}</p><p>Selected owner return: <b>${selected}</b>.</p>${selectedTrace}`;
-  } else {
-    detail = response ? `<p><b>${response.owner}</b> · ${response.next}</p><p>${response.claim}</p>` : '<p>Return to the case and choose the platform owner’s response to trace the handoff to a named owner.</p>';
-  }
-  const target = scope === 'quarter' ? 'April–June 2026' : scope === 'release' ? 'REL-204' : 'Settings at collection';
-  const tabs = traceStages.map((name,i) => `<button data-stage="${i}" aria-pressed="${i===stage}">${name}</button>`).join('');
-  const configurationTrials = {matched:'Readable settings',missing:'Unavailable settings'};
-  const choices = scope === 'settings' ? configurationTrials : Object.fromEntries(Object.entries(packets).map(([key,p])=>[key,p.label]));
-  const comparison = scope === 'settings' ? (trial === 'missing' ? 'An unreadable branch configuration leaves the check missing. Request access or ask the repository owner to collect it locally.' : 'The fixture records a two-review requirement on core-service and infra-modules. The policy returns PASS for these configuration fields.') : packetTrace(scope, trial);
-  return `<article class="change-case trace-guide"><p class="eyebrow">Implementation evidence · Synthetic case</p><h1>Trace ${target}</h1>
-    <p>Customer request: <b>${requests[scope].label}</b> · Platform response: <b>${evidenceActions[selectedAction] || 'Undecided'}</b> · Owner return: <b>${selected}</b>.</p>
-    <div class="trace-stages" role="group" aria-label="Trace stage">${tabs}</div><div class="trace-record" id="trace-record">${detail}</div>
-    <h2>Compare evidence returns</h2><label class="case-select">Illustrative comparison for ${target}<select id="trace-trial">${Object.entries(choices).map(([key,label])=>`<option value="${key}" ${trial===key?'selected':''}>${label}</option>`).join('')}</select></label>
-    <div class="trace-comparison">${comparison}</div>
-    <details><summary>Components, fixture and research</summary><p><a href="${repo}/blob/main/scripts/assess_github.py">Python collector</a> reads three GitHub settings checks locally. <a href="${repo}/blob/main/policies/change_mgmt/branch_protection_enforced.rego">OPA policy</a> evaluates branch settings. <a href="${repo}/blob/main/scripts/export_workspace.py">Fixture exporter</a> produces the <a href="./data/sample-report.json">bundled JSON report</a>. The operating records compared above are illustrative.</p><p><a href="https://www.aicpa-cima.com/resources/download/illustrative-soc-2-r-report-with-description-and-assertion">AICPA’s illustrative Type 2 report</a> distinguishes control tests and results. <a href="https://csrc.nist.gov/pubs/sp/800/53/a/r5/final">NIST SP 800-53A</a> frames assessment objectives and evidence procedures.</p></details>
-    <p><a href="#case">Return to the customer and funding decision</a></p></article>`;
+  const source = selectedAction || 'release';
+  const key = selectedAction ? returnedEvidence : 'matched';
+  const file = recordNames[source]?.[key] || evidenceReturns[source]?.[key] || 'Dated settings file';
+  const target = {settings:'the settings check',release:'REL-204',quarter:'the April–June register'}[selectedRequest];
+  const tabs = traceStages.map((name,i) => `<button type="button" data-stage="${i}" aria-controls="trace-record" aria-pressed="${i===stage}">${name}</button>`).join('');
+  const panel = stage===0 ? settingsLab(control) : stage===1 ? recordLab(source, key, control) : reviewHandoff();
+  return `<article class="change-case trace-guide"><p class="eyebrow">Technical guide · Cedarline Dispatch</p><h1>Trace ${target}</h1>
+    <p>${questions[selectedRequest]} Follow the evidence from repository settings to Priya’s reply.</p>
+    <p class="trace-context"><b>${briefOpen ? 'From your case' : 'June example'}</b> · ${sourceLabels[source]} · ${file}</p>
+    <div class="trace-stages" role="group" aria-label="Evidence workflow">${tabs}</div>
+    <section class="trace-panel" id="trace-record">${panel}</section>
+    <details class="trace-sources"><summary>Implementation and source files</summary>
+    <p>The <a href="${repo}/blob/main/scripts/assess_github.py">local assessment</a> uses read-only GitHub requests for one named repository. It checks branch protection, review requirements and status checks, and active workflow presence. The <a href="${repo}/blob/main/policies/change_mgmt/branch_protection_enforced.rego">Rego policy for this check</a> evaluates readable settings. The collector records unavailable evidence as MISSING.</p>
+    <dl class="trace-fields"><div><dt>Fixture source · ${date(control.collected_at)}</dt><dd><code>${h(control.source.payload)}</code></dd></div><div><dt>Policy query</dt><dd><code>${h(control.source.query)}</code></dd></div></dl>
+    <p><code>evidence.json</code> holds sanitized observations. <code>report.json</code> contains the dated results. Both stay local. The <a href="./data/sample-report.json">public fixture report</a> uses synthetic inputs from two repositories for this check. The release and quarter records are fictional owner-supplied examples.</p></details>
+    <p class="case-links"><a href="#case" id="trace-return">${briefOpen ? 'Return to your case record' : 'Open the business case'}</a></p></article>`;
 }
 function refreshTrace(selector) {
   saveSelection();
@@ -230,13 +308,30 @@ function refreshTrace(selector) {
   main.querySelector(selector)?.focus({preventScroll:true});
 }
 document.addEventListener('click',event=>{
+  if (page !== 'technical') return;
+  if (event.target.closest('#trace-return') && briefOpen && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+    window.addEventListener('hashchange', () => main.querySelector('#brief-title')?.focus(), {once:true});
+  }
+  const input = event.target.closest('[data-policy]');
+  if (input && Object.hasOwn(policyExamples, input.dataset.policy)) {
+    policyExample = input.dataset.policy;
+    refreshTrace(`[data-policy="${policyExample}"]`);
+    return;
+  }
   const button = event.target.closest('[data-stage]');
   if (!button) return;
   stage = Number(button.dataset.stage);
   refreshTrace(`[data-stage="${stage}"]`);
 });
+main.addEventListener('toggle',event=>{
+  if (event.target.matches('.trace-compare') && main.contains(event.target)) {
+    comparingRecords = event.target.open;
+    saveSelection();
+  }
+},true);
 document.addEventListener('change',event=>{
   if (event.target.id === 'trace-trial') {
+    comparingRecords = true;
     trial = event.target.value;
     refreshTrace('#trace-trial');
   } else if (event.target.id === 'sponsor') {
@@ -339,32 +434,75 @@ document.addEventListener('click',async event=>{
   }
   if(action==='confirm-reset'){if(real())realReviews.delete(storageKey);if(!real()){try{localStorage.removeItem(storageKey);}catch{}}imported=false;help.close();await setReport(sample);navigate('overview');notify('Current report’s notes cleared. Sample restored.');}
 });
+function refreshBrief(selector, scroll = false) {
+  const disclosure = main.querySelector('.alternate-file');
+  if (disclosure && !scroll) alternateOpen = disclosure.open;
+  saveSelection();
+  main.innerHTML = caseView();
+  main.querySelector(selector)?.focus({preventScroll: !scroll});
+}
+document.addEventListener('click',event=>{
+  if (page !== 'case' || !canShowCase()) return;
+  if (event.target.closest('#open-brief')) {
+    if (briefOpen) {
+      main.querySelector('#brief-title').focus();
+      return;
+    }
+    briefOpen = true;
+    selectedRequest = 'release';
+    selectedAction = 'release';
+    returnedEvidence = 'matched';
+    trial = 'matched';
+    ownerFollowUp = false;
+    mark = '';
+    alternateOpen = false;
+    refreshBrief('#brief-title', true);
+    return;
+  }
+  if (event.target.closest('#owner-follow-up')) {
+    returnedEvidence = 'matched';
+    trial = 'matched';
+    ownerFollowUp = true;
+    mark = '';
+    refreshBrief('[data-packet="matched"]', true);
+    return;
+  }
+  const log = event.target.closest('[data-packet]');
+  if (log && Object.hasOwn(evidenceReturns[selectedAction] || {},log.dataset.packet)) {
+    returnedEvidence = log.dataset.packet;
+    trial = returnedEvidence;
+    mark = '';
+    ownerFollowUp = false;
+    refreshBrief(`[data-packet="${returnedEvidence}"]`);
+    return;
+  }
+  const tick = event.target.closest('[data-mark]');
+  if (tick && Object.hasOwn(markLabels[selectedAction] || {},tick.dataset.mark)) {
+    mark = tick.dataset.mark;
+    refreshBrief(`[data-mark="${mark}"]`);
+    return;
+  }
+  const preset = event.target.closest('[data-profile]');
+  if (preset && Object.hasOwn(profiles,preset.dataset.profile)) {
+    Object.assign(pilotAssumptions, {repositories:profiles[preset.dataset.profile].repositories, manualMinutes:25,collectorMinutes:10,setupHours:4});
+    refreshBrief(`[data-profile="${preset.dataset.profile}"]`);
+  }
+});
 document.addEventListener('change',event=>{
   const field = event.target;
+  if (page !== 'case' || !canShowCase()) return;
   if (field.id === 'case-request') {
     selectedRequest = field.value;
-    returnedEvidence = 'pending';
-    document.querySelector('#case-response').innerHTML = caseResponse();
-    document.querySelector('#compare-actions').innerHTML = compareActions();
-  } else if (field.name === 'evidence-action') {
+    selectedAction = selectedRequest === 'settings' ? 'snapshot' : selectedRequest;
+  } else if (field.id === 'case-source') {
     selectedAction = field.value;
-    returnedEvidence = 'pending';
-  } else if (field.id === 'evidence-return') {
-    returnedEvidence = field.value;
   } else return;
-  if (field.id !== 'evidence-return') document.querySelector('#return-options').innerHTML = returnOptions();
-  if (field.id === 'case-request') trial = 'matched';
-  if (returnedEvidence !== 'pending' && (selectedRequest !== 'settings' || returnedEvidence !== 'exception')) trial = returnedEvidence;
-  saveSelection();
-  document.querySelector('#action-outcome').innerHTML = actionOutcome();
-});
-document.addEventListener('input',event=>{
-  const field = event.target;
-  if(!field.matches('[data-pilot]'))return;
-  pilotAssumptions[field.dataset.pilot] = field.validity.valid ? field.valueAsNumber : NaN;
-  document.querySelector('#pilot-result').innerHTML = pilotResult();
-  document.querySelector('#sponsor-memo').textContent = sponsorMemo();
-  saveSelection();
+  returnedEvidence = selectedAction === 'snapshot' ? 'pending' : 'matched';
+  trial = 'matched';
+  mark = '';
+  ownerFollowUp = false;
+  alternateOpen = true;
+  refreshBrief('#'+field.id);
 });
 document.addEventListener('input',e=>{if(e.target.id==='search'){filters.query=e.target.value;renderResults();}});
 document.addEventListener('change',e=>{if(['status-filter','domain-filter','progress-filter'].includes(e.target.id)){const id=e.target.id;filters[{'status-filter':'status','domain-filter':'domain','progress-filter':'progress'}[id]]=e.target.value;render();document.getElementById(id)?.focus();}});
