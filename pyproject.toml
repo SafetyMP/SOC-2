@@ -9,7 +9,7 @@ description = "Local SOC 2 readiness workspace and Python/Rego policy engine for
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
-dependencies = ["PyYAML==6.0.3"]
+dependencies = ["PyYAML==6.0.4"]
 
 keywords = ["soc2", "readiness", "github", "evidence", "policy-as-code", "opa", "rego"]
 
